@@ -90,6 +90,9 @@ static NSString *RevealCellReuseIdentifier = @"RevealCellReuseIdentifier";
     cell.imageView.image = [[UIImage imageNamed:@"ipod.png"] imageWithRenderingMode:UIImageRenderingModeAlwaysTemplate];
     cell.imageView.tintColor = [UIColor darkGrayColor];
     
+    //cell.rightCascadeReversed = YES;
+    //cell.leftCascadeReversed = YES;
+    
     [cell setAccessoryType:UITableViewCellAccessoryDisclosureIndicator];
     
     return cell;

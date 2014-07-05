@@ -343,8 +343,21 @@ static UIImage* _imageWithColor_size(UIColor* color, CGSize size)
 {
     NSArray *items = newPosition<SWCellRevealPositionCenter ? _leftButtonItems : _rightButtonItems;
     NSMutableArray * __strong* views =  newPosition<SWCellRevealPositionCenter ? &_leftViews : &_rightViews;
+    BOOL reversedCascade = newPosition<SWCellRevealPositionCenter ? _c.leftCascadeReversed : _c.rightCascadeReversed;
+//    UIViewAutoresizing mask = UIViewAutoresizingFlexibleHeight |
+//        (newPosition<SWCellRevealPositionCenter ? UIViewAutoresizingFlexibleRightMargin: UIViewAutoresizingFlexibleLeftMargin);
+//    
+//    
+//    UIViewAutoresizing hMask;
+//    
+//    if ( reversedCascade)
+//        hMask = (newPosition<SWCellRevealPositionCenter ? UIViewAutoresizingFlexibleLeftMargin: UIViewAutoresizingFlexibleRightMargin);
+//    else
+//        hMask = (newPosition<SWCellRevealPositionCenter ? UIViewAutoresizingFlexibleRightMargin: UIViewAutoresizingFlexibleLeftMargin);
+//    
     UIViewAutoresizing mask = UIViewAutoresizingFlexibleHeight |
-        (newPosition<SWCellRevealPositionCenter ? UIViewAutoresizingFlexibleRightMargin: UIViewAutoresizingFlexibleLeftMargin);
+        (!!reversedCascade == newPosition<SWCellRevealPositionCenter ? UIViewAutoresizingFlexibleLeftMargin: UIViewAutoresizingFlexibleRightMargin);
+    
 
     if ( items.count == 0 )
         return;
@@ -425,7 +438,8 @@ static UIImage* _imageWithColor_size(UIColor* color, CGSize size)
         [utilityView addSubview:button];
         [*views addObject:utilityView];
         
-        [self insertSubview:utilityView atIndex:0];
+        if ( reversedCascade ) [self insertSubview:utilityView atIndex:0];
+        else [self addSubview:utilityView];
     }
     
     CGFloat xLocation = [self frontLocationForPosition:SWCellRevealPositionCenter];
@@ -474,6 +488,7 @@ static UIImage* _imageWithColor_size(UIColor* color, CGSize size)
 //        CGFloat x = 0.5*floor(2*(xReference+location));
 //        CGFloat w = 0.5*ceil(2*lWidth);
         
+// This works better on iOS7
         CGFloat x = floor(xReference+location);
         CGFloat w = ceil(lWidth);
         
@@ -556,6 +571,10 @@ const NSInteger SWCellRevealPositionNone = 0xff;
     _rightViewPosition = SWCellRevealPositionCenter;
     _quickFlickVelocity = 150.0f;
     _revealAnimationDuration = 0.25;
+    _bounceBackOnRightOverdraw = YES;
+    _bounceBackOnLeftOverdraw = YES;
+    _rightCascadeReversed = NO;
+    _leftCascadeReversed = NO;
     _animationQueue = [NSMutableArray array];
 }
 
@@ -1124,7 +1143,7 @@ const NSInteger SWCellRevealPositionNone = 0xff;
     
     // symmetric computing of widths
     CGFloat revealWidth = symmetry<0 ? [_utilityContentView rightRevealWidth] : [_utilityContentView leftRevealWidth];
-    BOOL bounceBack = symmetry<0 ? _bounceBackOnOverdraw : _bounceBackOnLeftOverdraw;
+    BOOL bounceBack = symmetry<0 ? _bounceBackOnRightOverdraw : _bounceBackOnLeftOverdraw;
   
     // symmetric replacement of location
     xLocation = xLocation * symmetry;

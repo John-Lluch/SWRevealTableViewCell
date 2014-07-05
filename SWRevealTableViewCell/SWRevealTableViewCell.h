@@ -118,8 +118,12 @@ typedef NS_ENUM(NSUInteger, SWCellRevealPosition)
 @property (nonatomic, assign) NSTimeInterval revealAnimationDuration;
 
 // If YES (the default) the controller will bounce to the center position when dragging further than the total utility items width
-@property (nonatomic, assign) BOOL bounceBackOnOverdraw;
-@property (nonatomic, assign) BOOL bounceBackOnLeftOverdraw;
+@property (nonatomic, assign) BOOL bounceBackOnRightOverdraw;   // default is YES
+@property (nonatomic, assign) BOOL bounceBackOnLeftOverdraw;    // default is YES
+
+// Defines whether further items should appear below nearer ones (normal) or abobe them (reversed). Set to YES for reversed behavior
+@property (nonatomic, assign) BOOL rightCascadeReversed;   // default is NO
+@property (nonatomic, assign) BOOL leftCascadeReversed;    // default is NO
 
 // Defines a width on the border of the cell contentView to the panGesturRecognizer where the gesture is allowed,
 // default is 0 which means no restriction.

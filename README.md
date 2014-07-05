@@ -30,9 +30,11 @@ SWRevealTableViewCell is UITableViewCell subclass to easily display left and rig
 The repo includes the following example projects that can be used as templates or for testing purposes
 * RevealTableViewCellExample.xcodeproj
 
-![Image](https://raw.github.com/John-Lluch/SWRevealTableViewCell/master/SWRevealTableViewCellImage1.png)
+![Image](https://raw.github.com/John-Lluch/SWRevealTableViewCell/master/SWRevealTableViewCellImage0.png)
     
 ![Image](https://raw.github.com/John-Lluch/SWRevealTableViewCell/master/SWRevealTableViewCellImage2.png)
+    
+![Image](https://raw.github.com/John-Lluch/SWRevealTableViewCell/master/SWRevealTableViewCellImage1.png)
     
 ![Image](https://raw.github.com/John-Lluch/SWRevealTableViewCell/master/SWRevealTableViewCellImage3.png)
 
