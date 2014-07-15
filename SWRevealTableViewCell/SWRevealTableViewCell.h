@@ -32,7 +32,13 @@
 
  RELEASE NOTES
  
- Version 0.0.1 (Current Version)
+ Version 0.2.0 (Current Version)
+    - Added UIActionSheet category extension
+ 
+ Version 0.1.0
+    - Added properties 'rightCascadeReversed', 'leftCascadeReversed', 'bounceBackOnRightOverdraw', 'bounceBackOnLeftOverdraw'
+ 
+ Version 0.0.1
     - Initial Release
  
 */
@@ -44,6 +50,7 @@
 
 @class SWRevealTableViewCell;
 @class UIVisualEffect;
+
 
 #pragma mark - SWCellButtonItem
 
@@ -60,7 +67,7 @@
 @property(nonatomic) UIImage *image;             // default is nil
 @property(nonatomic) UIColor *backgroundColor;   // default is nil
 @property(nonatomic) UIColor *tintColor;         // default is nil
-@property(nonatomic, copy) NSString *title;      // default is nil
+@property(nonatomic) NSString *title;            // default is nil
 @property(nonatomic) UIVisualEffect *visualEffect;
 
 @end
@@ -83,6 +90,13 @@ typedef NS_ENUM(NSUInteger, SWCellRevealPosition)
 };
 
 
+#pragma mark - UIActionSheetExtension
+
+@interface UIActionSheet(SWCellButtonItem)
+- (void)showFromCellButtonItem:(SWCellButtonItem *)item animated:(BOOL)animated;
+@end
+
+
 #pragma mark - SWRevealTableViewCell
 
 /* A UITableViewCell subclass capable of presenting right and left utility views similar to the Mail app */
@@ -91,10 +105,15 @@ typedef NS_ENUM(NSUInteger, SWCellRevealPosition)
 @protocol SWRevealTableViewCellDataSource;
 
 @interface SWRevealTableViewCell : UITableViewCell
+{
+    // The SWRevealTableViewCell is meant to be overriden,
+    // thus we allow protected access to the _delegate ivar, this also prevents redeclaration of the same
+    id __weak _delegate;
+}
 
-// delegate
-@property (nonatomic, assign) id <SWRevealTableViewCellDelegate> delegate;
-@property (nonatomic, assign) id <SWRevealTableViewCellDataSource> dataSource;
+// delegate, datasource
+@property (nonatomic, weak) id <SWRevealTableViewCellDelegate> delegate;
+@property (nonatomic, weak) id <SWRevealTableViewCellDataSource> dataSource;
 
 // An array of custom cell button items (SWCellButtonItem) to display on the left side of the cell
 @property (nonatomic, readonly) NSArray *leftCellButtonItems;
@@ -102,32 +121,32 @@ typedef NS_ENUM(NSUInteger, SWCellRevealPosition)
 // An array of custom cell button items (SWCellButtonItem) to display on the right side of the cell
 @property (nonatomic, readonly) NSArray *rightCellButtonItems;
 
-// Front view position, use this to set a particular position state on the cell
-// On initialization it is set to RevealPositionCenter
-@property (nonatomic, assign) SWCellRevealPosition revealPosition;
-
-// Chained animation of the cell reveal position. You can call it several times in a row to achieve
-// any set of animations you wish. Animations will be chained and performed one after the other.
+// Front view position, use this to programmatically set a particular position to the cell
+// If you call the animated version several times in a row animations will be chained and performed one after the other.
+@property (nonatomic) SWCellRevealPosition revealPosition;
 - (void)setRevealPosition:(SWCellRevealPosition)revealPosition animated:(BOOL)animated;
+
+// Determines whether users can reveal items while the receiver is in editing mode
+@property (nonatomic) BOOL allowsRevealInEditMode;
 
 // Velocity required for the controller to toggle its reveal state based on a swipe movement, default is 150
 // You can disable velocity triggered swipe by seting this to a very high number
-@property (nonatomic, assign) CGFloat quickFlickVelocity;
+@property (nonatomic) CGFloat quickFlickVelocity;
 
 // Duration for the reveal animation, default is 0.25
-@property (nonatomic, assign) NSTimeInterval revealAnimationDuration;
+@property (nonatomic) NSTimeInterval revealAnimationDuration;
 
 // If YES (the default) the controller will bounce to the center position when dragging further than the total utility items width
-@property (nonatomic, assign) BOOL bounceBackOnRightOverdraw;   // default is YES
-@property (nonatomic, assign) BOOL bounceBackOnLeftOverdraw;    // default is YES
+@property (nonatomic) BOOL bounceBackOnRightOverdraw;   // default is YES
+@property (nonatomic) BOOL bounceBackOnLeftOverdraw;    // default is YES
 
 // Defines whether further items should appear below nearer ones (normal) or abobe them (reversed). Set to YES for reversed behavior
-@property (nonatomic, assign) BOOL rightCascadeReversed;   // default is NO
-@property (nonatomic, assign) BOOL leftCascadeReversed;    // default is NO
+@property (nonatomic) BOOL rightCascadeReversed;   // default is NO
+@property (nonatomic) BOOL leftCascadeReversed;    // default is NO
 
 // Defines a width on the border of the cell contentView to the panGesturRecognizer where the gesture is allowed,
 // default is 0 which means no restriction.
-@property (nonatomic, assign) CGFloat draggableBorderWidth;
+@property (nonatomic) CGFloat draggableBorderWidth;
 
 @end
 
