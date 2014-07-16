@@ -26,13 +26,14 @@
 
 #pragma mark - SWCellButton Item
 
+@class SWUtilityContentView;
+
 @interface SWCellButtonItem()
 @property(nonatomic,strong) void (^handler)(SWCellButtonItem *, SWRevealTableViewCell*);
+@property(nonatomic,assign) SWUtilityContentView *view;
 @end
 
 @implementation SWCellButtonItem
-@synthesize image = _image;
-@synthesize title = _title;
 
 - (id)initWithImage:(UIImage *)image
 {
@@ -55,6 +56,21 @@
     }
     return self;
 }
+
+
+//- (id)copyWithZone:(NSZone *)zone
+//{
+//    SWCellButtonItem *theCopy = [[self class] allocWithZone:zone];
+//    theCopy.width = _width;
+//    theCopy.image = _image;
+//    theCopy.backgroundColor = _backgroundColor;
+//    theCopy.tintColor = _tintColor;
+//    theCopy.title = _title;
+//    theCopy.visualEffect = _visualEffect;
+//    theCopy.handler = _handler;
+//    theCopy.view = _view;
+//    return theCopy;
+//}
 
 
 - (instancetype)initWithTitle:(NSString *)title image:(UIImage*)image handler:(void(^)(SWCellButtonItem *, SWRevealTableViewCell* cell))handler;
@@ -93,8 +109,9 @@
 #pragma mark - SWUTilityButton
 
 @interface SWUtilityButton : UIButton
-@property (nonatomic) SWCellRevealPosition position;
-@property (nonatomic) NSInteger index;
+//@property (nonatomic) SWCellRevealPosition position;
+//@property (nonatomic) NSInteger index;
+@property (nonatomic) SWCellButtonItem *item;
 @property (nonatomic) BOOL wantsCombinedLayout;
 @end
 
@@ -177,18 +194,19 @@ const CGFloat CombinedHeigh = 36;
 
 @interface SWUtilityContentView: SWUtilityView
 {
-    NSMutableArray *_rightViews;
-    NSMutableArray *_leftViews;
     __weak SWRevealTableViewCell *_c;
 }
 
-@property (nonatomic) NSArray *leftButtonItems;
-@property (nonatomic) NSArray *rightButtonItems;
+@property (nonatomic,readonly) NSArray *leftButtonItems;
+@property (nonatomic,readonly) NSArray *rightButtonItems;
+@property (nonatomic,readonly) NSMutableArray *leftViews;
+@property (nonatomic,readonly) NSMutableArray *rightViews;
 
-- (CGFloat)leftRevealWidth;
-- (CGFloat)rightRevealWidth;
-- (NSInteger)leftCount;
-- (NSInteger)rightCount;
+//- (CGFloat)leftRevealWidth;
+//- (CGFloat)rightRevealWidth;
+//- (NSInteger)leftCount;
+//- (NSInteger)rightCount;
+//- (void)resetButtonItems;
 
 @end
 
@@ -234,29 +252,15 @@ static UIImage* _imageWithColor_size(UIColor* color, CGSize size)
 
 - (NSInteger)leftCount
 {
-    [self prepareRightButtonItems];
+    [self _prepareLeftButtonItems];
     return _leftButtonItems.count;
 }
 
 
 - (NSInteger)rightCount
 {
-    [self prepareLeftButtonItems];
+    [self _prepareRightButtonItems];
     return _rightButtonItems.count;
-}
-
-
-- (void)prepareLeftButtonItems
-{
-    if ( _leftButtonItems == nil )
-        _leftButtonItems = [_c _getLeftButtonItems];
-}
-
-
-- (void)prepareRightButtonItems
-{
-    if ( _rightButtonItems == nil )
-        _rightButtonItems = [_c _getRightButtonItems];
 }
 
 
@@ -279,6 +283,41 @@ static UIImage* _imageWithColor_size(UIColor* color, CGSize size)
         width += item.width;
     }
     return width;
+}
+
+
+- (CGRect)referenceFrameForCellButtonItem:(SWCellButtonItem*)targetItem
+{
+    SWCellButtonItem *item = nil;
+    CGRect bounds = self.bounds;
+    
+    CGFloat location = 0;
+    
+    if ( item != targetItem)
+    {
+        location = bounds.size.width;
+        for ( item in _rightButtonItems )
+        {
+            location = location - item.width;
+            if ( item == targetItem ) break;
+        }
+    }
+    
+    if ( item != targetItem)
+    {
+        location = bounds.origin.x;
+        for ( item in _leftButtonItems )
+        {
+            if ( item == targetItem ) break;
+            location = location + item.width;
+        }
+    }
+
+    CGRect referenceFrame = bounds;
+    referenceFrame.origin.x = location;
+    referenceFrame.size.width = item.width;
+
+    return referenceFrame;
 }
 
 
@@ -339,36 +378,43 @@ static UIImage* _imageWithColor_size(UIColor* color, CGSize size)
 }
 
 
+- (void)resetButtonItems
+{
+    _leftButtonItems = nil;
+    _rightButtonItems = nil;
+}
+
+
+- (void)_prepareLeftButtonItems
+{
+    if ( _leftButtonItems == nil )
+        _leftButtonItems = [_c _getLeftButtonItems];
+}
+
+
+- (void)_prepareRightButtonItems
+{
+    if ( _rightButtonItems == nil )
+        _rightButtonItems = [_c _getRightButtonItems];
+}
+
+
 - (void)_deployItemsForNewPosition:(SWCellRevealPosition)newPosition
 {
     NSArray *items = newPosition<SWCellRevealPositionCenter ? _leftButtonItems : _rightButtonItems;
     NSMutableArray * __strong* views =  newPosition<SWCellRevealPositionCenter ? &_leftViews : &_rightViews;
     BOOL reversedCascade = newPosition<SWCellRevealPositionCenter ? _c.leftCascadeReversed : _c.rightCascadeReversed;
-//    UIViewAutoresizing mask = UIViewAutoresizingFlexibleHeight |
-//        (newPosition<SWCellRevealPositionCenter ? UIViewAutoresizingFlexibleRightMargin: UIViewAutoresizingFlexibleLeftMargin);
-//    
-//    
-//    UIViewAutoresizing hMask;
-//    
-//    if ( reversedCascade)
-//        hMask = (newPosition<SWCellRevealPositionCenter ? UIViewAutoresizingFlexibleLeftMargin: UIViewAutoresizingFlexibleRightMargin);
-//    else
-//        hMask = (newPosition<SWCellRevealPositionCenter ? UIViewAutoresizingFlexibleRightMargin: UIViewAutoresizingFlexibleLeftMargin);
-//    
     UIViewAutoresizing mask = UIViewAutoresizingFlexibleHeight |
         (!!reversedCascade == newPosition<SWCellRevealPositionCenter ? UIViewAutoresizingFlexibleLeftMargin: UIViewAutoresizingFlexibleRightMargin);
-    
 
     if ( items.count == 0 )
         return;
     
     *views = [NSMutableArray array];
     
-    NSInteger count = items.count;
-    for ( NSInteger i=0 ; i<count ; i++ )
+    for ( SWCellButtonItem *item in items )
     {
         // get the button item
-        SWCellButtonItem *item = [items objectAtIndex:i];
         NSAssert( [item isKindOfClass:[SWCellButtonItem class]], @"Cell button items must be of class SWCellButtonItem" );
         
         // get button item properties
@@ -401,8 +447,9 @@ static UIImage* _imageWithColor_size(UIColor* color, CGSize size)
         button.frame = utilityView.bounds;
         button.titleLabel.numberOfLines = 0;
         button.titleLabel.textAlignment = NSTextAlignmentCenter;
-        button.position = newPosition;
-        button.index = i;
+        button.item = item;
+//        button.position = newPosition;
+//        button.index = i;
         
         // Depending on which item properties the developer has set, we chose configure the button to make the best of it
         
@@ -420,7 +467,6 @@ static UIImage* _imageWithColor_size(UIColor* color, CGSize size)
         
         if ( image && color )
         {
-            //[button setBackgroundColor:color];
             [utilityView setCustomBackgroundColor:color];
         }
         
@@ -450,10 +496,12 @@ static UIImage* _imageWithColor_size(UIColor* color, CGSize size)
 - (void)_undeployItemsForNewPosition:(SWCellRevealPosition)newPosition
 {
     NSMutableArray * __strong* views = newPosition<SWCellRevealPositionCenter ? &_leftViews : &_rightViews;
+    
     for ( SWUtilityView *utilityView in *views )
     {
         [utilityView removeFromSuperview];
     }
+    
     *views = nil;
 }
 
@@ -473,7 +521,6 @@ static UIImage* _imageWithColor_size(UIColor* color, CGSize size)
     CGFloat endLocation = 0;
     for ( NSInteger i=0 ; i<count ; i++ )
     {
-        SWUtilityView *utilityView = [views objectAtIndex:i];
         SWCellButtonItem *item = [items objectAtIndex:i];
         
         CGFloat width = item.width;
@@ -493,6 +540,8 @@ static UIImage* _imageWithColor_size(UIColor* color, CGSize size)
         CGFloat w = ceil(lWidth);
         
         CGRect frame = CGRectMake(x, 0, w, size.height);
+        
+        SWUtilityView *utilityView = [views objectAtIndex:i];
         [utilityView setFrame:frame];
     }
 }
@@ -500,12 +549,77 @@ static UIImage* _imageWithColor_size(UIColor* color, CGSize size)
 
 - (void)_buttonTouchUpAction:(SWUtilityButton*)button
 {
-    NSArray *items = button.position<SWCellRevealPositionCenter ? _leftButtonItems : _rightButtonItems;
-    SWCellButtonItem *item = [items objectAtIndex:button.index];
+//    NSArray *items = button.position<SWCellRevealPositionCenter ? _leftButtonItems : _rightButtonItems;
+//    SWCellButtonItem *item = [items objectAtIndex:button.index];
+//    
+//    void (^handler)(SWCellButtonItem *, SWRevealTableViewCell*) = item.handler;
+//    if ( handler )
+//        handler( item, _c );
     
-    void (^handler)(SWCellButtonItem *, SWRevealTableViewCell*) = item.handler;
+    
+    SWCellButtonItem *item = button.item;
+    void (^handler)(SWCellButtonItem*,SWRevealTableViewCell*) = item.handler;
+    
     if ( handler )
         handler( item, _c );
+}
+
+@end
+
+
+#pragma mark - UIActionSheetExtension
+
+@implementation UIActionSheet(SWCellButtonItem)
+
+- (void)showFromCellButtonItem:(SWCellButtonItem *)item animated:(BOOL)animated
+{
+    SWUtilityContentView *utilityView = item.view;
+    CGRect frame = [utilityView referenceFrameForCellButtonItem:item];
+    
+    [self showFromRect:frame inView:utilityView animated:animated];
+}
+
+@end
+
+
+#import <UIKit/UIGestureRecognizerSubclass.h>
+
+#pragma mark - SWDirectionPanGestureRecognizer
+
+@interface SWRevealTableViewCellPanGestureRecognizer : UIPanGestureRecognizer
+@end
+
+
+@implementation SWRevealTableViewCellPanGestureRecognizer
+{
+    BOOL _dragging;
+    CGPoint _beginPoint;
+}
+
+- (void)touchesBegan:(NSSet *)touches withEvent:(UIEvent *)event
+{
+    [super touchesBegan:touches withEvent:event];
+   
+    UITouch *touch = [touches anyObject];
+    _beginPoint = [touch locationInView:self.view];
+    _dragging = NO;
+}
+
+
+- (void)touchesMoved:(NSSet *)touches withEvent:(UIEvent *)event
+{
+    [super touchesMoved:touches withEvent:event];
+    
+    if ( _dragging || self.state == UIGestureRecognizerStateFailed)
+        return;
+    
+    const int kDirectionPanThreshold = 5;
+    
+    UITouch *touch = [touches anyObject];
+    CGPoint nowPoint = [touch locationInView:self.view];
+    
+    if (abs(nowPoint.x - _beginPoint.x) > kDirectionPanThreshold) _dragging = YES;
+    else if (abs(nowPoint.y - _beginPoint.y) > kDirectionPanThreshold) self.state = UIGestureRecognizerStateFailed;
 }
 
 @end
@@ -570,7 +684,7 @@ const NSInteger SWCellRevealPositionNone = 0xff;
     _leftViewPosition = SWCellRevealPositionCenter;
     _rightViewPosition = SWCellRevealPositionCenter;
     _quickFlickVelocity = 150.0f;
-    _revealAnimationDuration = 0.25;
+    _revealAnimationDuration = 0.5;
     _bounceBackOnRightOverdraw = YES;
     _bounceBackOnLeftOverdraw = YES;
     _rightCascadeReversed = NO;
@@ -581,7 +695,7 @@ const NSInteger SWCellRevealPositionNone = 0xff;
 
 - (void)_initSubViews
 {
-    _panGestureRecognizer = [[UIPanGestureRecognizer alloc] initWithTarget:self action:@selector(_handleRevealGesture:)];
+    _panGestureRecognizer = [[SWRevealTableViewCellPanGestureRecognizer alloc] initWithTarget:self action:@selector(_handleRevealGesture:)];
     _panGestureRecognizer.delegate = self;
     
     UIView *contentView = self.contentView;
@@ -589,15 +703,24 @@ const NSInteger SWCellRevealPositionNone = 0xff;
 }
 
 
+#pragma mark - Overrides
+
 -(void)prepareForReuse
 {
     [super prepareForReuse];
     
     // By default we disable rear buttons when the cell is reused.
     // Developers can reverse this by explicitly setting position in their cellForRowAtIndexPath or willDisplay methods
-    [self setRevealPosition:SWCellRevealPositionCenter];
-    [_utilityContentView setRightButtonItems:nil];
-    [_utilityContentView setLeftButtonItems:nil];
+    [self resetCellAnimated:NO];
+}
+
+
+- (void)setEditing:(BOOL)editing animated:(BOOL)animated
+{
+    [super setEditing:editing animated:animated];
+    
+    if ( !_allowsRevealInEditMode && editing )
+        [self resetCellAnimated:animated];
 }
 
 
@@ -666,6 +789,21 @@ const NSInteger SWCellRevealPositionNone = 0xff;
 }
 
 
+- (void)resetCellAnimated:(BOOL)animated
+{
+    [self setRevealPosition:SWCellRevealPositionCenter animated:animated];
+    //[_utilityContentView resetButtonItems];
+}
+
+
+- (void)setAllowsRevealInEditMode:(BOOL)allowsRevealInEditMode
+{
+    _allowsRevealInEditMode = allowsRevealInEditMode;
+    if ( !_allowsRevealInEditMode && self.editing )
+        [self resetCellAnimated:NO];
+}
+
+
 #pragma mark - Reveal Location
 
 - (void)_setRevealLocation:(CGFloat)xLocation
@@ -715,12 +853,9 @@ const NSInteger SWCellRevealPositionNone = 0xff;
     NSArray *leftItems = nil;
     
     if ( _dataSource )
-    {
-        leftItems = [_dataSource leftButtonItemsInRevealTableViewCell:self];
-        if ( leftItems == nil ) leftItems = @[];
-    }
-
-    // will return nil if dataSource has not been set yet, some array otherwise
+        leftItems = [self _preparedItems:[_dataSource leftButtonItemsInRevealTableViewCell:self]];
+        
+    // we will return nil if dataSource has not been set yet, some array (maybe empty) otherwise
     // once we got an array the data source is never asked again
     return leftItems;
 }
@@ -731,15 +866,34 @@ const NSInteger SWCellRevealPositionNone = 0xff;
     NSArray *rightItems = nil;
     
     if ( _dataSource )
-    {
-        rightItems = [_dataSource rightButtonItemsInRevealTableViewCell:self];
-        if ( rightItems == nil ) rightItems = @[];
-    }
+        rightItems = [self _preparedItems:[_dataSource rightButtonItemsInRevealTableViewCell:self]];
 
-    // will return nil if dataSource has not been set yet, some array otherwise
+    // we will return nil if dataSource has not been set yet, some array (maybe empty) otherwise
     // once we got an array the data source is never asked again
     return rightItems;
 }
+
+
+- (NSArray*)_preparedItems:(NSArray*)itemsArray
+{
+    for ( SWCellButtonItem *item in itemsArray )
+        item.view = _utilityContentView;
+    
+    return [itemsArray copy];
+}
+
+
+//- (NSArray*)_copiedItems:(NSArray*)itemsArray
+//{
+//    NSMutableArray *items = [NSMutableArray array];
+//    for ( SWCellButtonItem *item in itemsArray )
+//    {
+//        SWCellButtonItem *itemCopy = [item copy];
+//        itemCopy.view = _utilityContentView;
+//        [items addObject:itemCopy];
+//    }
+//    return [items copy];
+//}
 
 
 #pragma mark - Symmetry
@@ -865,6 +1019,11 @@ const NSInteger SWCellRevealPositionNone = 0xff;
         leftDeploymentCompletion();
         rightDeploymentCompletion();
         frontDeploymentCompletion();
+        
+        // next time we want to get items from the datasource, so we may reset current items now
+        if ( newPosition == SWCellRevealPositionCenter )
+            [_utilityContentView resetButtonItems];
+        
         [self _dequeue];
     };
     
@@ -873,7 +1032,7 @@ const NSInteger SWCellRevealPositionNone = 0xff;
 //        [UIView animateWithDuration:duration delay:0.0
 //        options:UIViewAnimationOptionCurveEaseOut animations:animations completion:completion];
         
-        [UIView animateWithDuration:_revealAnimationDuration delay:0 usingSpringWithDamping:0.65 initialSpringVelocity:1/duration
+        [UIView animateWithDuration:_revealAnimationDuration delay:0 usingSpringWithDamping:1 initialSpringVelocity:1/duration
         options:0 animations:animations completion:completion];
     }
     else
@@ -887,8 +1046,11 @@ const NSInteger SWCellRevealPositionNone = 0xff;
 // that must be invoked on animation completion in order to finish deployment
 - (void (^)(void))_frontDeploymentForNewRevealPosition:(SWCellRevealPosition)newPosition
 {
-    if ( (_utilityContentView.rightCount==0  && newPosition < SWCellRevealPositionCenter) ||
-         (_utilityContentView.leftCount==0 && newPosition > SWCellRevealPositionCenter) )
+    if ( ( newPosition < SWCellRevealPositionCenter && _utilityContentView.rightCount==0 ) ||
+         ( newPosition > SWCellRevealPositionCenter && _utilityContentView.leftCount==0) )
+        newPosition = SWCellRevealPositionCenter;
+    
+    if ( !_allowsRevealInEditMode && self.editing )
         newPosition = SWCellRevealPositionCenter;
     
     BOOL positionIsChanging = (_frontViewPosition != newPosition);
@@ -918,7 +1080,10 @@ const NSInteger SWCellRevealPositionNone = 0xff;
 - (void (^)(void))_leftDeploymentForNewRevealPosition:(SWCellRevealPosition)newPosition
 {
 
-    if ( _utilityContentView.leftCount==0 && newPosition > SWCellRevealPositionCenter )
+    if ( newPosition > SWCellRevealPositionCenter && _utilityContentView.leftCount==0 )
+        newPosition = SWCellRevealPositionCenter;
+    
+    if ( !_allowsRevealInEditMode && self.editing )
         newPosition = SWCellRevealPositionCenter;
 
     BOOL appear = (_leftViewPosition <= SWCellRevealPositionCenter || _leftViewPosition == SWCellRevealPositionNone) && newPosition > SWCellRevealPositionCenter;
@@ -926,7 +1091,7 @@ const NSInteger SWCellRevealPositionNone = 0xff;
     
     if ( appear )
     {
-        [_utilityContentView prepareLeftButtonItems];
+        //[_utilityContentView prepareLeftButtonItems];
         [_revealScrollView insertSubview:_utilityContentView atIndex:0];
     }
     
@@ -939,7 +1104,10 @@ const NSInteger SWCellRevealPositionNone = 0xff;
 // that must be invoked on animation completion in order to finish deployment
 - (void (^)(void))_rightDeploymentForNewRevealPosition:(SWCellRevealPosition)newPosition
 {
-    if ( _utilityContentView.rightCount==0 && newPosition < SWCellRevealPositionCenter )
+    if ( newPosition < SWCellRevealPositionCenter && _utilityContentView.rightCount==0)
+        newPosition = SWCellRevealPositionCenter;
+    
+    if ( !_allowsRevealInEditMode && self.editing )
         newPosition = SWCellRevealPositionCenter;
 
     BOOL appear = _rightViewPosition >= SWCellRevealPositionCenter && newPosition < SWCellRevealPositionCenter ;
@@ -947,7 +1115,7 @@ const NSInteger SWCellRevealPositionNone = 0xff;
     
     if ( appear )
     {
-        [_utilityContentView prepareRightButtonItems];
+        //[_utilityContentView prepareRightButtonItems];
         [_revealScrollView insertSubview:_utilityContentView atIndex:0];
     }
     
@@ -1034,11 +1202,16 @@ const NSInteger SWCellRevealPositionNone = 0xff;
 
 - (BOOL)_panGestureShouldBegin
 {
+    // forbid gesture in edit mode if requested
+    if ( !_allowsRevealInEditMode && self.editing )
+        return NO;
+    
     // forbid gesture if the initial translation is not horizontal
     UIView *recognizerView = _panGestureRecognizer.view;
-    CGPoint translation = [_panGestureRecognizer translationInView:recognizerView];
-    if ( fabs(translation.y/translation.x) > 1 )
-        return NO;
+//    CGPoint translation = [_panGestureRecognizer translationInView:recognizerView];
+//    NSLog( @"translation:%@", NSStringFromCGPoint(translation) );
+//    if ( fabs(translation.y/translation.x) > 1 )
+//        return NO;
     
     // forbid gesture if the following delegate is implemented and returns NO
     if ( [_delegate respondsToSelector:@selector(revealTableViewCellPanGestureShouldBegin:)] )
@@ -1050,13 +1223,12 @@ const NSInteger SWCellRevealPositionNone = 0xff;
     
     BOOL draggableBorderAllowing = (
          _frontViewPosition != SWCellRevealPositionCenter || _draggableBorderWidth == 0.0f ||
-         (_utilityContentView.leftCount>0 && xLocation <= _draggableBorderWidth) ||
-         (_utilityContentView.rightCount>0 && xLocation >= (width - _draggableBorderWidth)) );
-
+         (xLocation <= _draggableBorderWidth && _utilityContentView.leftCount>0) ||
+         (xLocation >= (width - _draggableBorderWidth) && _utilityContentView.rightCount>0) );
+    
     // allow gesture only within the bounds defined by the draggableBorderWidth property
     return draggableBorderAllowing ;
 }
-
 
 
 #pragma mark - Gesture Based Reveal
@@ -1114,7 +1286,7 @@ const NSInteger SWCellRevealPositionNone = 0xff;
     if ( xLocation < 0 )
     {
         if ( _utilityContentView.rightCount == 0 ) xLocation = 0;
-        [self _frontDeploymentForNewRevealPosition:SWCellRevealPositionLeft]();
+        //[self _frontDeploymentForNewRevealPosition:SWCellRevealPositionLeft]();
         [self _leftDeploymentForNewRevealPosition:SWCellRevealPositionLeft]();
         [self _rightDeploymentForNewRevealPosition:SWCellRevealPositionLeft]();
     }
@@ -1122,7 +1294,7 @@ const NSInteger SWCellRevealPositionNone = 0xff;
     if ( xLocation > 0 )
     {
         if ( _utilityContentView.leftCount == 0 ) xLocation = 0;
-        [self _frontDeploymentForNewRevealPosition:SWCellRevealPositionRight]();
+        //[self _frontDeploymentForNewRevealPosition:SWCellRevealPositionRight]();
         [self _rightDeploymentForNewRevealPosition:SWCellRevealPositionRight]();
         [self _leftDeploymentForNewRevealPosition:SWCellRevealPositionRight]();
     }
@@ -1207,19 +1379,19 @@ const NSInteger SWCellRevealPositionNone = 0xff;
 @end
 
 
-//@interface UIView(subi)
+//@interface UIView(subvistes)
 //@end
 //
-//@implementation UIView(subi)
+//@implementation UIView(subvistes)
 //
 //- (void)lesSubvistesAmbNivell:(int)nivell
 //{
 //    NSMutableString *espai = [NSMutableString string];
 //    for ( int i=0 ; i<nivell ; i++ ) [espai appendString:@"--"];
 //    NSLog( @"%@%03d %@ <%0lx>", espai, nivell, NSStringFromClass([self class]), (unsigned long)self );
-//    for ( UIView *sub in self.subviews )
+//    for ( UIView *subvista in self.subviews )
 //    {
-//        [sub lesSubvistesAmbNivell:nivell+1];
+//        [subvista lesSubvistesAmbNivell:nivell+1];
 //    }
 //}
 //
