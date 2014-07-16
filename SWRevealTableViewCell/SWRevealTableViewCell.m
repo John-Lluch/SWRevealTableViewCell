@@ -22,6 +22,8 @@
  
 */
 
+#import <UIKit/UIGestureRecognizerSubclass.h>
+
 #import "SWRevealTableViewCell.h"
 
 #pragma mark - SWCellButton Item
@@ -109,8 +111,6 @@
 #pragma mark - SWUTilityButton
 
 @interface SWUtilityButton : UIButton
-//@property (nonatomic) SWCellRevealPosition position;
-//@property (nonatomic) NSInteger index;
 @property (nonatomic) SWCellButtonItem *item;
 @property (nonatomic) BOOL wantsCombinedLayout;
 @end
@@ -197,17 +197,10 @@ const CGFloat CombinedHeigh = 36;
     __weak SWRevealTableViewCell *_c;
 }
 
-
 @property (nonatomic,readonly) NSArray *leftButtonItems;
 @property (nonatomic,readonly) NSArray *rightButtonItems;
 @property (nonatomic,readonly) NSMutableArray *leftViews;
 @property (nonatomic,readonly) NSMutableArray *rightViews;
-
-//- (CGFloat)leftRevealWidth;
-//- (CGFloat)rightRevealWidth;
-//- (NSInteger)leftCount;
-//- (NSInteger)rightCount;
-//- (void)resetButtonItems;
 
 @end
 
@@ -450,8 +443,6 @@ static UIImage* _imageWithColor_size(UIColor* color, CGSize size)
         button.titleLabel.numberOfLines = 0;
         button.titleLabel.textAlignment = NSTextAlignmentCenter;
         button.item = item;
-//        button.position = newPosition;
-//        button.index = i;
         
         // Depending on which item properties the developer has set, we chose configure the button to make the best of it
         
@@ -551,14 +542,6 @@ static UIImage* _imageWithColor_size(UIColor* color, CGSize size)
 
 - (void)_buttonTouchUpAction:(SWUtilityButton*)button
 {
-//    NSArray *items = button.position<SWCellRevealPositionCenter ? _leftButtonItems : _rightButtonItems;
-//    SWCellButtonItem *item = [items objectAtIndex:button.index];
-//    
-//    void (^handler)(SWCellButtonItem *, SWRevealTableViewCell*) = item.handler;
-//    if ( handler )
-//        handler( item, _c );
-    
-    
     SWCellButtonItem *item = button.item;
     void (^handler)(SWCellButtonItem*,SWRevealTableViewCell*) = item.handler;
     
@@ -584,8 +567,6 @@ static UIImage* _imageWithColor_size(UIColor* color, CGSize size)
 @end
 
 
-#import <UIKit/UIGestureRecognizerSubclass.h>
-
 #pragma mark - SWDirectionPanGestureRecognizer
 
 @interface SWRevealTableViewCellPanGestureRecognizer : UIPanGestureRecognizer
@@ -597,6 +578,7 @@ static UIImage* _imageWithColor_size(UIColor* color, CGSize size)
     BOOL _dragging;
     CGPoint _beginPoint;
 }
+
 
 - (void)touchesBegan:(NSSet *)touches withEvent:(UIEvent *)event
 {
@@ -646,7 +628,7 @@ static UIImage* _imageWithColor_size(UIColor* color, CGSize size)
 {
     NSMutableArray *_animationQueue;
     CGFloat _revealLocation;
-    __weak UIView *_revealScrollView;
+    __weak UIView *_revealLayoutView;
 }
 
 const NSInteger SWCellRevealPositionNone = 0xff;
@@ -738,12 +720,12 @@ const NSInteger SWCellRevealPositionNone = 0xff;
         // On iOS7 this used to be a UIScrollView, which was handy, but it is no longer the case on iOS8.
         // In case the contentOffset methods on the revealScrollView are not available we will perform our layout manualy.
         // See _setRevealLocation: implementation
-        _revealScrollView = (id)[self.contentView superview];
+        _revealLayoutView = (id)[self.contentView superview];
         
         // Create a view to hold our custom utility views and insert it into the cell hierarchy
         _utilityContentView = [[SWUtilityContentView alloc] initWithRevealTableViewCell:self frame:self.bounds];
         [_utilityContentView setAutoresizingMask:UIViewAutoresizingFlexibleWidth|UIViewAutoresizingFlexibleHeight];
-        [_revealScrollView insertSubview:_utilityContentView atIndex:0];
+        [_revealLayoutView insertSubview:_utilityContentView atIndex:0];
     
         // Force the initial reveal position to the developer provided value
         SWCellRevealPosition initialPosition = _frontViewPosition;
@@ -753,6 +735,10 @@ const NSInteger SWCellRevealPositionNone = 0xff;
         
         // Finally, set the actual position
         [self _setRevealPosition:initialPosition withDuration:0.0];
+    }
+    else
+    {
+        [_utilityContentView resetButtonItems];  // this will prevent retain cycles
     }
 }
 
@@ -818,24 +804,28 @@ const NSInteger SWCellRevealPositionNone = 0xff;
     utilityFrame.origin.x = -xLocation;
     [_utilityContentView setFrame:utilityFrame];
     
-    if ( [_revealScrollView respondsToSelector:@selector(setContentOffset:)] )
+    if ( [_revealLayoutView respondsToSelector:@selector(setContentOffset:)] )
     {
-        // Ok, so we have an underlying UIScrollView supporting our views (iOS7). We just set its contentOfset,
+        // We have an underlying UIScrollView supporting our views (iOS7). We just set its contentOfset,
         // Apple implementation takes care of all the required layout code.
-        [(UIScrollView*)_revealScrollView setContentOffset:CGPointMake(-xLocation,0)];
+        [(UIScrollView*)_revealLayoutView setContentOffset:CGPointMake(-xLocation,0)];
     }
 
     else
     {
-        // No underlying scrollView for our layout needs (iOS8).
-        // So we must explicitly offset the cell contentView and its siblings to create our custom layout.
-        for ( UIView *view in _revealScrollView.subviews )
+        // Ok, so no underlying scrollView for our layout needs :-( (iOS8).
+        // We must explicitly offset the cell contentView and its siblings to create our custom layout.
+        // We first call super layoutSubviews to get base cell subview frames from Apple implementation.
+        [super layoutSubviews];
+        
+        // Now we apply our custom layout offset
+        for ( UIView *view in _revealLayoutView.subviews )
         {
             // One of the siblings of the cell contentView is the cell's separatorView.
-            // We do not want to apply our custom offseting layout on that particular view, so we skip that view based on its class name.
-            // This of course a hack that may break in the future, but we decided to lay all the cell views instead of implementing our thing only
-            // on top of the cell contentView view, which would not support cells with accessory views.
-            // If this code breaks on a future iOS release it should be very easy to fix anyway.
+            // We do not want to apply our custom layout offseting to that particular view, so we skip that view based on its class name.
+            // This is of course hacky and may break in the future. However since we choose to apply our layout directly to the cell, as oposed to
+            // the cell's contentView we do not have other choice than filtering this here.
+            // If this code breaks on a future iOS release it will be very easy to fix anyway.
             {
                 if ( [NSStringFromClass([view class]) rangeOfString:@"Separator"].length > 0 )
                     continue;
@@ -882,19 +872,6 @@ const NSInteger SWCellRevealPositionNone = 0xff;
     
     return [itemsArray copy];
 }
-
-
-//- (NSArray*)_copiedItems:(NSArray*)itemsArray
-//{
-//    NSMutableArray *items = [NSMutableArray array];
-//    for ( SWCellButtonItem *item in itemsArray )
-//    {
-//        SWCellButtonItem *itemCopy = [item copy];
-//        itemCopy.view = _utilityContentView;
-//        [items addObject:itemCopy];
-//    }
-//    return [items copy];
-//}
 
 
 #pragma mark - Symmetry
@@ -1091,10 +1068,7 @@ const NSInteger SWCellRevealPositionNone = 0xff;
     BOOL disappear = (newPosition <= SWCellRevealPositionCenter || newPosition == SWCellRevealPositionNone) && _leftViewPosition > SWCellRevealPositionCenter;
     
     if ( appear )
-    {
-        //[_utilityContentView prepareLeftButtonItems];
-        [_revealScrollView insertSubview:_utilityContentView atIndex:0];
-    }
+        [_revealLayoutView insertSubview:_utilityContentView atIndex:0];
     
     _leftViewPosition = newPosition;
     
@@ -1115,10 +1089,7 @@ const NSInteger SWCellRevealPositionNone = 0xff;
     BOOL disappear = newPosition >= SWCellRevealPositionCenter && _rightViewPosition < SWCellRevealPositionCenter;
     
     if ( appear )
-    {
-        //[_utilityContentView prepareRightButtonItems];
-        [_revealScrollView insertSubview:_utilityContentView atIndex:0];
-    }
+        [_revealLayoutView insertSubview:_utilityContentView atIndex:0];
     
     _rightViewPosition = newPosition;
     
@@ -1146,7 +1117,8 @@ const NSInteger SWCellRevealPositionNone = 0xff;
 
 - (void)layoutSubviews
 {
-    [self layoutForLocation:_revealLocation];  // <-- will call super layoutSubviews
+    [super layoutSubviews];
+    [self layoutForLocation:_revealLocation];
 }
 
 
@@ -1165,8 +1137,8 @@ const NSInteger SWCellRevealPositionNone = 0xff;
         xLocation = 0.5*round(2*xLocation);  // round to nearest halph point, good for retina
     }
     
-    // before setting our custom layout we call super layoutSubviews to get cell subview frames to the system values
-    [super layoutSubviews];
+//    // before setting our custom layout we call super layoutSubviews to get cell subview frames to the system values
+//    [super layoutSubviews];
     
     // now we update frames according to our required offset
     [self _setRevealLocation:xLocation];

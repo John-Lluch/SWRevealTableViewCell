@@ -47,14 +47,16 @@ static NSString *RevealCellReuseIdentifier = @"RevealCellReuseIdentifier";
     // Uncomment the following line to display an Edit button in the navigation bar for this view controller.
     // self.navigationItem.rightBarButtonItem = self.editButtonItem;
     
-    UITableView *tableView = self.tableView;
-    //[tableView setBackgroundColor:[UIColor grayColor]];
+    // Set here general tableview properties
     
-    //UIImageView *imageView = [[UIImageView alloc] initWithImage:[UIImage imageNamed:@"abstract-free-wallpaper-and-backgrounds-141.jpg"]];
-    //imageView.autoresizingMask = UIViewAutoresizingFlexibleHeight|UIViewAutoresizingFlexibleWidth;
-    //[tableView setBackgroundView:imageView];
+//    UITableView *tableView = self.tableView;
+//    [tableView setBackgroundColor:[UIColor yellowColor]];
+//    
+//    UIImageView *imageView = [[UIImageView alloc] initWithImage:[UIImage imageNamed:@"beach-wallpaper-in-hd-166.jpg"]];
+//    imageView.contentMode = UIViewContentModeScaleAspectFill;
+//    imageView.autoresizingMask = UIViewAutoresizingFlexibleHeight|UIViewAutoresizingFlexibleWidth;
+//    [tableView setBackgroundView:imageView];
     
-    [tableView registerClass:[SWRevealTableViewCell class] forCellReuseIdentifier:RevealCellReuseIdentifier];
     self.title = @"My Table View Title";
     
     UIBarButtonItem *buttonItemAdd = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemAdd target:self action:@selector(buttonItemAddAction:)];
@@ -92,18 +94,25 @@ static NSString *RevealCellReuseIdentifier = @"RevealCellReuseIdentifier";
 
 - (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath
 {
-    SWRevealTableViewCell *cell = [tableView dequeueReusableCellWithIdentifier:RevealCellReuseIdentifier forIndexPath:indexPath];
+    SWRevealTableViewCell *cell = [tableView dequeueReusableCellWithIdentifier:RevealCellReuseIdentifier];
+    if ( cell == nil )
+    {
+        cell = [[SWRevealTableViewCell alloc] initWithStyle:UITableViewCellStyleSubtitle reuseIdentifier:RevealCellReuseIdentifier];
+    }
 
     cell.delegate = self;
     cell.dataSource = self;
     
     // Configure the cell...
+    cell.detailTextLabel.text = @"Detail text";
     cell.textLabel.text = [NSString stringWithFormat:@"My cell content %ld", (long)indexPath.section];
     cell.imageView.image = [[UIImage imageNamed:@"ipod.png"] imageWithRenderingMode:UIImageRenderingModeAlwaysTemplate];
     cell.imageView.tintColor = [UIColor darkGrayColor];
     
-    //cell.rightCascadeReversed = YES;
-    //cell.leftCascadeReversed = YES;
+    // You can try uncommenting this, that would mimic how Apple iOS8 mail implementation looks, though I personally preffer leaving it commented out
+    
+//    cell.rightCascadeReversed = YES;
+//    cell.leftCascadeReversed = YES;
     
     [cell setAccessoryType:UITableViewCellAccessoryDisclosureIndicator];
     
@@ -158,24 +167,27 @@ static NSString *RevealCellReuseIdentifier = @"RevealCellReuseIdentifier";
 //
 //    return @[action1,action2];
 //}
-//
-//
-//- (void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath
-//{
-//    SWRevealTableViewCell *cell = (id)[tableView cellForRowAtIndexPath:indexPath];
-//    [cell setRevealPosition:SWCellRevealPositionLeft animated:YES];
-//}
-//
-//
-//- (void)tableView:(UITableView *)tableView didDeselectRowAtIndexPath:(NSIndexPath *)indexPath
-//{
-//    SWRevealTableViewCell *cell = (id)[tableView cellForRowAtIndexPath:indexPath];
-//    [cell setRevealPosition:SWCellRevealPositionCenter animated:YES];
-//}
+
+- (void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath
+{
+}
+
+
+- (void)tableView:(UITableView *)tableView didDeselectRowAtIndexPath:(NSIndexPath *)indexPath
+{
+}
 
 
 - (void)tableView:(UITableView *)tableView willDisplayCell:(UITableViewCell *)cell forRowAtIndexPath:(NSIndexPath *)indexPath
 {
+    // customize here the cell object before it is displayed.
+    
+//    [cell setBackgroundColor:[UIColor colorWithWhite:1.0 alpha:0.5]];
+//    UIImageView *imageView = [[UIImageView alloc] initWithImage:[UIImage imageNamed:@"beach-wallpaper-in-hd-166.jpg"]];
+//    imageView.contentMode = UIViewContentModeScaleAspectFill;
+//    imageView.autoresizingMask = UIViewAutoresizingFlexibleHeight|UIViewAutoresizingFlexibleWidth;
+//    imageView.clipsToBounds = YES;
+//    [cell setBackgroundView:imageView];
 }
 
 /*
@@ -246,10 +258,6 @@ static NSString *RevealCellReuseIdentifier = @"RevealCellReuseIdentifier";
 
 - (void)revealTableViewCell:(SWRevealTableViewCell *)revealTableViewCell didMoveToPosition:(SWCellRevealPosition)position
 {
-    if ( position == SWCellRevealPositionCenter )
-        _revealingCellIndexPath = nil;
-    else
-        _revealingCellIndexPath = [self.tableView indexPathForCell:revealTableViewCell];
 }
 
 
@@ -290,6 +298,7 @@ static NSString *RevealCellReuseIdentifier = @"RevealCellReuseIdentifier";
     {
         SWCellButtonItem *item1 = [SWCellButtonItem itemWithTitle:@"Delete" handler:^(SWCellButtonItem *item, SWRevealTableViewCell *cell)
         {
+            _revealingCellIndexPath = [self.tableView indexPathForCell:cell];
             [self presentDeleteActionSheetForItem:item];
         }];
     
@@ -300,6 +309,7 @@ static NSString *RevealCellReuseIdentifier = @"RevealCellReuseIdentifier";
     
         SWCellButtonItem *item2 = [SWCellButtonItem itemWithTitle:@"Rename" handler:^(SWCellButtonItem *item, SWRevealTableViewCell *cell)
         {
+            _revealingCellIndexPath = [self.tableView indexPathForCell:cell];
             [self presentRenameActionSheetForItem:item];
         }];
 
@@ -309,6 +319,7 @@ static NSString *RevealCellReuseIdentifier = @"RevealCellReuseIdentifier";
     
         SWCellButtonItem *item3 = [SWCellButtonItem itemWithTitle:@"More" handler:^(SWCellButtonItem *item, SWRevealTableViewCell *cell)
         {
+            _revealingCellIndexPath = [self.tableView indexPathForCell:cell];
             [self presentMoreActionSheetForItem:item];
         }];
     
@@ -420,9 +431,9 @@ static NSString *RevealCellReuseIdentifier = @"RevealCellReuseIdentifier";
 }
 
 
-- (void)_performMoreActionAtIndex:(NSInteger)firstOtherButtonIndex
+- (void)_performMoreActionAtIndex:(NSInteger)index
 {
-    switch ( firstOtherButtonIndex)
+    switch ( index )
     {
         case 0:
             NSLog( @" Action One Tapped");
@@ -453,7 +464,7 @@ static NSString *RevealCellReuseIdentifier = @"RevealCellReuseIdentifier";
         return;
     }
     
-    NSInteger firstOtherButtonIndex = [actionSheet firstOtherButtonIndex];
+    NSInteger index = buttonIndex - actionSheet.firstOtherButtonIndex;
     
     switch ( actionSheet.tag )
     {
@@ -466,7 +477,7 @@ static NSString *RevealCellReuseIdentifier = @"RevealCellReuseIdentifier";
             break;
             
         case 2:  // more
-            [self _performMoreActionAtIndex:firstOtherButtonIndex];
+            [self _performMoreActionAtIndex:index];
             break;
 
         default:
