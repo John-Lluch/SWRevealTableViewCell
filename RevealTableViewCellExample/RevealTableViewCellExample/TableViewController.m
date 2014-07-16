@@ -9,7 +9,11 @@
 #import "TableViewController.h"
 #import "SWRevealTableViewCell.h"
 
-@interface TableViewController ()<SWRevealTableViewCellDelegate,SWRevealTableViewCellDataSource>
+@interface TableViewController ()<SWRevealTableViewCellDelegate,SWRevealTableViewCellDataSource,UIActionSheetDelegate>
+{
+    NSIndexPath *_revealingCellIndexPath;
+    NSInteger _sectionTitleRowCount;
+}
 
 @end
 
@@ -52,6 +56,11 @@ static NSString *RevealCellReuseIdentifier = @"RevealCellReuseIdentifier";
     
     [tableView registerClass:[SWRevealTableViewCell class] forCellReuseIdentifier:RevealCellReuseIdentifier];
     self.title = @"My Table View Title";
+    
+    UIBarButtonItem *buttonItemAdd = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemAdd target:self action:@selector(buttonItemAddAction:)];
+    [self.navigationItem setRightBarButtonItem:buttonItemAdd];
+    
+    _sectionTitleRowCount = 4;
 }
 
 
@@ -74,6 +83,9 @@ static NSString *RevealCellReuseIdentifier = @"RevealCellReuseIdentifier";
 
 - (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section
 {
+    if ( section == SectionTitle )
+        return _sectionTitleRowCount;
+    
     return 4;
 }
 
@@ -86,7 +98,7 @@ static NSString *RevealCellReuseIdentifier = @"RevealCellReuseIdentifier";
     cell.dataSource = self;
     
     // Configure the cell...
-    cell.textLabel.text = [NSString stringWithFormat:@"My cell content %ld - %ld", (long)indexPath.section, (long)indexPath.row];
+    cell.textLabel.text = [NSString stringWithFormat:@"My cell content %ld", (long)indexPath.section];
     cell.imageView.image = [[UIImage imageNamed:@"ipod.png"] imageWithRenderingMode:UIImageRenderingModeAlwaysTemplate];
     cell.imageView.tintColor = [UIColor darkGrayColor];
     
@@ -215,14 +227,39 @@ static NSString *RevealCellReuseIdentifier = @"RevealCellReuseIdentifier";
 }
 */
 
+#pragma mark - SWRevealTableViewCell delegate
 
-#pragma mark - reveal table view cell data source
+- (void)revealTableViewCell:(SWRevealTableViewCell *)revealTableViewCell willMoveToPosition:(SWCellRevealPosition)position
+{
+    if ( position == SWCellRevealPositionCenter )
+        return;
+    
+    for ( SWRevealTableViewCell *cell in [self.tableView visibleCells] )
+    {
+        if ( cell == revealTableViewCell )
+            continue;
+        
+        [cell setRevealPosition:SWCellRevealPositionCenter animated:YES];
+    }
+}
+
+
+- (void)revealTableViewCell:(SWRevealTableViewCell *)revealTableViewCell didMoveToPosition:(SWCellRevealPosition)position
+{
+    if ( position == SWCellRevealPositionCenter )
+        _revealingCellIndexPath = nil;
+    else
+        _revealingCellIndexPath = [self.tableView indexPathForCell:revealTableViewCell];
+}
+
+
+#pragma mark - SWRevealTableViewCell data source
 
 - (NSArray*)leftButtonItemsInRevealTableViewCell:(SWRevealTableViewCell *)revealTableViewCell
 {
     SWCellButtonItem *item1 = [SWCellButtonItem itemWithTitle:@"Snap" handler:^(SWCellButtonItem *item, SWRevealTableViewCell *cell)
     {
-        NSLog( @"Snap");
+        NSLog( @"Snap Tapped");
     }];
     
     item1.backgroundColor = [UIColor cyanColor];
@@ -231,7 +268,7 @@ static NSString *RevealCellReuseIdentifier = @"RevealCellReuseIdentifier";
     
     SWCellButtonItem *item2 = [SWCellButtonItem itemWithTitle:@"Select" handler:^(SWCellButtonItem *item, SWRevealTableViewCell *cell)
     {
-        NSLog( @"Select");
+        NSLog( @"Select Tapped");
     }];
     
     item2.backgroundColor = [UIColor colorWithRed:0 green:0.5 blue:1 alpha:1];
@@ -253,7 +290,7 @@ static NSString *RevealCellReuseIdentifier = @"RevealCellReuseIdentifier";
     {
         SWCellButtonItem *item1 = [SWCellButtonItem itemWithTitle:@"Delete" handler:^(SWCellButtonItem *item, SWRevealTableViewCell *cell)
         {
-            NSLog( @"Delete");
+            [self presentDeleteActionSheetForItem:item];
         }];
     
         item1.backgroundColor = [UIColor redColor];
@@ -263,7 +300,7 @@ static NSString *RevealCellReuseIdentifier = @"RevealCellReuseIdentifier";
     
         SWCellButtonItem *item2 = [SWCellButtonItem itemWithTitle:@"Rename" handler:^(SWCellButtonItem *item, SWRevealTableViewCell *cell)
         {
-            NSLog( @"Rename");
+            [self presentRenameActionSheetForItem:item];
         }];
 
         item2.backgroundColor = [UIColor darkGrayColor];
@@ -272,7 +309,7 @@ static NSString *RevealCellReuseIdentifier = @"RevealCellReuseIdentifier";
     
         SWCellButtonItem *item3 = [SWCellButtonItem itemWithTitle:@"More" handler:^(SWCellButtonItem *item, SWRevealTableViewCell *cell)
         {
-            NSLog( @"More");
+            [self presentMoreActionSheetForItem:item];
         }];
     
         item3.backgroundColor = [UIColor lightGrayColor];
@@ -285,7 +322,7 @@ static NSString *RevealCellReuseIdentifier = @"RevealCellReuseIdentifier";
     {
         SWCellButtonItem *item1 = [SWCellButtonItem itemWithImage:[UIImage imageNamed:@"star.png"] handler:^(SWCellButtonItem *item, SWRevealTableViewCell *cell)
         {
-            NSLog( @"Star");
+            NSLog( @"Star Tapped");
         }];
     
         item1.backgroundColor = [UIColor orangeColor];
@@ -295,7 +332,7 @@ static NSString *RevealCellReuseIdentifier = @"RevealCellReuseIdentifier";
     
         SWCellButtonItem *item2 = [SWCellButtonItem itemWithImage:[UIImage imageNamed:@"heart.png"] handler:^(SWCellButtonItem *item, SWRevealTableViewCell *cell)
         {
-            NSLog( @"Heart");
+            NSLog( @"Heart Tapped");
         }];
 
         item2.backgroundColor = [UIColor darkGrayColor];
@@ -304,7 +341,7 @@ static NSString *RevealCellReuseIdentifier = @"RevealCellReuseIdentifier";
     
         SWCellButtonItem *item3 = [SWCellButtonItem itemWithImage:[UIImage imageNamed:@"airplane.png"] handler:^(SWCellButtonItem *item, SWRevealTableViewCell *cell)
         {
-            NSLog( @"Airplane");
+            NSLog( @"Airplane Tapped");
         }];
     
         item3.backgroundColor = [UIColor lightGrayColor];
@@ -314,6 +351,130 @@ static NSString *RevealCellReuseIdentifier = @"RevealCellReuseIdentifier";
     }
 
     return items;
+}
+
+
+#pragma mark - ButtonItemAdd action
+
+- (void)buttonItemAddAction:(id)sender
+{
+    NSIndexPath *insertingPath = [NSIndexPath indexPathForRow:0 inSection:SectionTitle];
+    _sectionTitleRowCount += 1;
+    
+    [self.tableView insertRowsAtIndexPaths:@[insertingPath] withRowAnimation:UITableViewRowAnimationFade];
+}
+
+
+#pragma mark - UIActionSheet
+
+
+- (void)presentDeleteActionSheetForItem:(SWCellButtonItem*)cellItem
+{
+    UIActionSheet *actSheet = [[UIActionSheet alloc] initWithTitle:@"Delete Actions"
+                delegate:self
+                cancelButtonTitle:@"Cancel"
+                destructiveButtonTitle:@"Delete Now"
+                otherButtonTitles:nil ];
+
+    [actSheet setTag:0];
+    [actSheet showFromCellButtonItem:cellItem animated:YES];
+}
+
+
+- (void)_performDeleteAction
+{
+    _sectionTitleRowCount -= 1;
+    [self.tableView deleteRowsAtIndexPaths:@[_revealingCellIndexPath] withRowAnimation:UITableViewRowAnimationFade];
+}
+
+
+- (void)presentRenameActionSheetForItem:(SWCellButtonItem*)cellItem
+{
+    UIActionSheet *actSheet = [[UIActionSheet alloc] initWithTitle:@"More Actions"
+                delegate:self
+                cancelButtonTitle:@"Cancel"
+                destructiveButtonTitle:nil
+                otherButtonTitles:@"Action Rename", nil ];
+
+    [actSheet setTag:1];
+    [actSheet showFromCellButtonItem:cellItem animated:YES];
+}
+
+
+- (void)_performRenameAction
+{
+    NSLog( @"Rename Tapped");
+}
+
+
+- (void)presentMoreActionSheetForItem:(SWCellButtonItem*)cellItem
+{
+    UIActionSheet *actSheet = [[UIActionSheet alloc] initWithTitle:@"More Actions"
+                delegate:self
+                cancelButtonTitle:@"Cancel"
+                destructiveButtonTitle:nil
+                otherButtonTitles:@"Action One", @"Action Two", @"Action Three", nil ];
+
+    [actSheet setTag:2];
+    [actSheet showFromCellButtonItem:cellItem animated:YES];
+}
+
+
+- (void)_performMoreActionAtIndex:(NSInteger)firstOtherButtonIndex
+{
+    switch ( firstOtherButtonIndex)
+    {
+        case 0:
+            NSLog( @" Action One Tapped");
+            break;
+            
+        case 1:
+            NSLog( @" Action Two Tapped");
+            break;
+            
+        case 2:
+            NSLog( @" Action Three Tapped");
+            break;
+
+        default:
+            break;
+    }
+}
+
+
+// UIActionSheet delegate
+- (void)actionSheet:(UIActionSheet *)actionSheet clickedButtonAtIndex:(NSInteger)buttonIndex
+{
+    //NSLog( @"clickedButtonAtIndex: %d", buttonIndex );
+    
+    if ( buttonIndex == [actionSheet cancelButtonIndex] )
+    {
+        NSLog( @"Cancel");
+        return;
+    }
+    
+    NSInteger firstOtherButtonIndex = [actionSheet firstOtherButtonIndex];
+    
+    switch ( actionSheet.tag )
+    {
+        case 0:  // delete
+            [self _performDeleteAction];
+            break;
+            
+        case 1:  // rename
+            [self _performRenameAction];
+            break;
+            
+        case 2:  // more
+            [self _performMoreActionAtIndex:firstOtherButtonIndex];
+            break;
+
+        default:
+            break;
+    }
+    
+    SWRevealTableViewCell *cell = (id)[self.tableView cellForRowAtIndexPath:_revealingCellIndexPath];
+    [cell setRevealPosition:SWCellRevealPositionCenter animated:YES];
 }
 
 

@@ -10,6 +10,7 @@ SWRevealTableViewCell is UITableViewCell subclass to easily display left and rig
 * Items can have text, images or both.
 * Configurable item sizes on an individual basis.
 * Item action is provided by calling a handler block.
+* Convenience UIActionSheet category method 'showFromCellButtonItem:animated:' to display menus from items
 * Correct handling of rotations, and cell/table resizing.
 * No issues with transparency, background colors or images on cells or table views.
 * No issues with accessory views on cells.

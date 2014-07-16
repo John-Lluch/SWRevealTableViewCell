@@ -31,11 +31,12 @@
  pan gestures. Similar to the mail app and but with enhanced features.
 
  RELEASE NOTES
- 
-Version 0.2.1 (Current Version)
+
+ Version 0.2.1 (Current Version)
     - Minor bug fixes (on UIActionSheet category)
  
-Version 0.2.0
+ Version 0.2.0
+
     - Added UIActionSheet category extension
  
  Version 0.1.0

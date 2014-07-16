@@ -197,6 +197,7 @@ const CGFloat CombinedHeigh = 36;
     __weak SWRevealTableViewCell *_c;
 }
 
+
 @property (nonatomic,readonly) NSArray *leftButtonItems;
 @property (nonatomic,readonly) NSArray *rightButtonItems;
 @property (nonatomic,readonly) NSMutableArray *leftViews;
@@ -252,6 +253,7 @@ static UIImage* _imageWithColor_size(UIColor* color, CGSize size)
 
 - (NSInteger)leftCount
 {
+
     [self _prepareLeftButtonItems];
     return _leftButtonItems.count;
 }
@@ -792,7 +794,6 @@ const NSInteger SWCellRevealPositionNone = 0xff;
 - (void)resetCellAnimated:(BOOL)animated
 {
     [self setRevealPosition:SWCellRevealPositionCenter animated:animated];
-    //[_utilityContentView resetButtonItems];
 }
 
 
