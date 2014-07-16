@@ -33,7 +33,7 @@
  RELEASE NOTES
 
  Version 0.2.1 (Current Version)
-    - Minor bug fixes (on UIActionSheet category)
+    - Bug fixes and some refactoring (on UIActionSheet category and layout)
  
  Version 0.2.0
 
