@@ -22,7 +22,7 @@ SWRevealTableViewCell is UITableViewCell subclass to easily display left and rig
 
 ## YouTube Videos
 
-[http://youtu.be/jlaWQsWinoU](http://youtu.be/jlaWQsWinoU)
+[http://youtu.be/jlaWQsWinoU (new)](http://youtu.be/jlaWQsWinoU)
 
 [http://youtu.be/v6GAGdf_Kkg](http://youtu.be/v6GAGdf_Kkg)
 
