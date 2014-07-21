@@ -27,10 +27,15 @@
 
  DESCRIPTION
 
- SWRevealTableViewCell is UITableViewCell subclass to easily display left and right buttons based on user
- pan gestures. Similar to the mail app and but with enhanced features.
+ SWRevealTableViewCell is a UITableViewCell subclass to easily display left and right buttons based on user
+ pan gestures or developer programmatic actions. Similar to the mail app and but with enhanced features.
 
  RELEASE NOTES
+ 
+ Version 0.3.0 (current Version)
+    - Major upgrade and refactoring.
+    - Support for extended items (similar to delete action of iOS8 mail)
+    - Cell button item handler blocks can now specify a return value
 
  Version 0.2.1 (Current Version)
     - Bug fixes and some refactoring (on UIActionSheet category and layout)
@@ -60,13 +65,17 @@
 
 /* A cell button item SWCellButtonItem is a button specialized for revealing behind a SWRevealTableViewCell.
    It is conceptually similar to a UIBarButtonItem except that instances do not implement a target and a action,
-   instead, a handler block must be provided to execute derived actions */
+   instead, a handler block must be provided to execute derived actions 
+*/
 
 @interface SWCellButtonItem : NSObject
 
-+ (instancetype)itemWithTitle:(NSString*)title handler:(void(^)(SWCellButtonItem *item, SWRevealTableViewCell* cell))handler;
-+ (instancetype)itemWithImage:(UIImage*)image handler:(void(^)(SWCellButtonItem *item, SWRevealTableViewCell* cell))handler;
+// Cell Button Item initialization
+// Return YES on the handler block if you want the item to be automatically dismissed immediatelly after user tap, NO otherwise
++ (instancetype)itemWithTitle:(NSString*)title handler:(BOOL(^)(SWCellButtonItem *item, SWRevealTableViewCell* cell))handler;
++ (instancetype)itemWithImage:(UIImage*)image handler:(BOOL(^)(SWCellButtonItem *item, SWRevealTableViewCell* cell))handler;
 
+// Cell Button Item properties
 @property(nonatomic) CGFloat width;              // default is 0.0
 @property(nonatomic) UIImage *image;             // default is nil
 @property(nonatomic) UIColor *backgroundColor;   // default is nil
@@ -79,10 +88,14 @@
 
 #pragma mark - SWCellRevealPosition
 
-/* Enum values for SWRevealTableViewCell's setRevealPosition:animated: and @property revealPosition */
+/* Enum values for SWRevealTableViewCell's setRevealPosition:animated: and @property revealPosition 
+*/
 
-typedef NS_ENUM(NSUInteger, SWCellRevealPosition)
+typedef NS_ENUM(NSInteger, SWCellRevealPosition)
 {
+    // Left position, cell is presented left-offseted with first right utility item fully expanded
+    SWCellRevealPositionLeftExtended,
+
     // Left position, cell is presented left-offseted with utility items on the right
     SWCellRevealPositionLeft,
 
@@ -91,6 +104,25 @@ typedef NS_ENUM(NSUInteger, SWCellRevealPosition)
     
     // Right possition, cell is presented right-offseted with utility items on the left
     SWCellRevealPositionRight,
+    
+    // Right possition, cell is presented right-offseted with first left utility item fully expanded
+    SWCellRevealPositionRightExtended,
+};
+
+
+/* Enum values for SWRevealTableViewCell's cellRevealMode property
+*/
+
+typedef NS_ENUM(NSInteger, SWCellRevealMode)
+{
+    // cascadeReversed is set to NO, bounceBackOnRightOverdraw is set to NO, actionOnOverdraw is set to NO
+    SWCellRevealModeNormal,
+
+    // cascadeReversed is set to NO, bounceBackOnRightOverdraw is set to YES, actionOnOverdraw is set to NO
+    SWCellRevealModeNormalWithBounce,
+
+    // cascadeReversed is set to YES, bounceBackOnRightOverdraw is set to NO, actionOnOverdraw is set to YES
+    SWCellRevealModeReversedWithAction,
 };
 
 
@@ -103,7 +135,8 @@ typedef NS_ENUM(NSUInteger, SWCellRevealPosition)
 
 #pragma mark - SWRevealTableViewCell
 
-/* A UITableViewCell subclass capable of presenting right and left utility views similar to the Mail app */
+/* A UITableViewCell subclass capable of presenting right and left utility views similar to the Mail app 
+*/
 
 @protocol SWRevealTableViewCellDelegate;
 @protocol SWRevealTableViewCellDataSource;
@@ -140,13 +173,24 @@ typedef NS_ENUM(NSUInteger, SWCellRevealPosition)
 // Duration for the reveal animation, default is 0.25
 @property (nonatomic) NSTimeInterval revealAnimationDuration;
 
-// If YES (the default) the controller will bounce to the center position when dragging further than the total utility items width
-@property (nonatomic) BOOL bounceBackOnRightOverdraw;   // default is YES
-@property (nonatomic) BOOL bounceBackOnLeftOverdraw;    // default is YES
+// Conveninece method to set cascadeReversed, bounceOnOverdraw and actionOnOverdraw as a whole
+// Note that reading this property may not always give an accurate value
+@property (nonatomic) SWCellRevealMode cellRevealMode;
 
-// Defines whether further items should appear below nearer ones (normal) or abobe them (reversed). Set to YES for reversed behavior
+// Defines whether further items should appear below nearer ones (normal) or abobe them (reversed). Set to YES for reversed behavior (similar to iO8 mail)
 @property (nonatomic) BOOL rightCascadeReversed;   // default is NO
 @property (nonatomic) BOOL leftCascadeReversed;    // default is NO
+
+// Determines whether the controller will bounce to the center position when dragging further than the total utility items width.
+// Setting this to YES will override any returned values of item action handlers
+@property (nonatomic) BOOL bounceBackOnRightOverdraw;   // default is NO
+@property (nonatomic) BOOL bounceBackOnLeftOverdraw;    // default is NO
+
+// Defines whether the handler block of the first item must invoked on user overdraw.
+// When this is set to YES user pan action is acompained with an animation similar to the delete action of iOS8 mail.
+// This property is only honored when XXCascadeReversed is also set to YES
+@property (nonatomic) BOOL performsActionOnRightOverdraw;   // default is NO
+@property (nonatomic) BOOL performsActionOnLeftOverdraw;    // default is NO
 
 // Defines a width on the border of the cell contentView to the panGesturRecognizer where the gesture is allowed,
 // default is 0 which means no restriction.
@@ -161,7 +205,7 @@ typedef NS_ENUM(NSUInteger, SWCellRevealPosition)
 // Return nil if no items must be presented
 
 @protocol SWRevealTableViewCellDataSource <NSObject>
-@required
+@optional
 - (NSArray*)leftButtonItemsInRevealTableViewCell:(SWRevealTableViewCell *)revealTableViewCell;
 - (NSArray*)rightButtonItemsInRevealTableViewCell:(SWRevealTableViewCell *)revealTableViewCell;
 
@@ -175,7 +219,8 @@ typedef NS_ENUM(NSUInteger, SWCellRevealPosition)
 @protocol SWRevealTableViewCellDelegate <NSObject>
 @optional
 
-/* Cell position notification */
+/* Cell position notification 
+*/
 
 // The following delegate methods will be called before and after the cell moves to a position
 - (void)revealTableViewCell:(SWRevealTableViewCell *)revealTableViewCell willMoveToPosition:(SWCellRevealPosition)position;
@@ -184,7 +229,8 @@ typedef NS_ENUM(NSUInteger, SWCellRevealPosition)
 // This will be called inside the reveal animation, thus you can use it to place your own code that will be animated in sync
 - (void)revealTableViewCell:(SWRevealTableViewCell *)revealTableViewCell animateToPosition:(SWCellRevealPosition)position;
 
-/* Gesture based reveal */
+/* Gesture based reveal 
+*/
 
 // Implement this to return NO when you want the pan gesture recognizer to be ignored
 - (BOOL)revealTableViewCellPanGestureShouldBegin:(SWRevealTableViewCell *)revealTableViewCell;
@@ -200,7 +246,8 @@ typedef NS_ENUM(NSUInteger, SWCellRevealPosition)
 - (void)revealTableViewCellPanGestureBegan:(SWRevealTableViewCell *)revealTableViewCell;
 - (void)revealTableViewCellPanGestureEnded:(SWRevealTableViewCell *)revealTableViewCell;
 
-/* Reveal progress */
+/* Reveal progress 
+*/
 
 // The following methods provide a means to track the evolution of the gesture recognizer.
 // The 'location' parameter is the X origin coordinate of the front view as the user drags it

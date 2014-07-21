@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		4E06122A197D770200AB677B /* Begur_Catalonia.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 4E061229197D770200AB677B /* Begur_Catalonia.jpg */; };
 		4E63BA2119600DA1006A9541 /* airplane.png in Resources */ = {isa = PBXBuildFile; fileRef = 4E63BA1719600DA1006A9541 /* airplane.png */; };
 		4E63BA2219600DA1006A9541 /* airplane@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 4E63BA1819600DA1006A9541 /* airplane@2x.png */; };
 		4E63BA2319600DA1006A9541 /* heart.png in Resources */ = {isa = PBXBuildFile; fileRef = 4E63BA1919600DA1006A9541 /* heart.png */; };
@@ -44,6 +45,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		4E061229197D770200AB677B /* Begur_Catalonia.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = Begur_Catalonia.jpg; sourceTree = "<group>"; };
 		4E63BA1719600DA1006A9541 /* airplane.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = airplane.png; sourceTree = "<group>"; };
 		4E63BA1819600DA1006A9541 /* airplane@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "airplane@2x.png"; sourceTree = "<group>"; };
 		4E63BA1919600DA1006A9541 /* heart.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = heart.png; sourceTree = "<group>"; };
@@ -113,6 +115,7 @@
 				4E63BA1E19600DA1006A9541 /* reveal-icon@2x.png */,
 				4E63BA1F19600DA1006A9541 /* star.png */,
 				4E63BA2019600DA1006A9541 /* star@2x.png */,
+				4E061229197D770200AB677B /* Begur_Catalonia.jpg */,
 			);
 			path = Resources;
 			sourceTree = "<group>";
@@ -279,6 +282,7 @@
 			files = (
 				4E63BA2119600DA1006A9541 /* airplane.png in Resources */,
 				4E63BA2719600DA1006A9541 /* reveal-icon.png in Resources */,
+				4E06122A197D770200AB677B /* Begur_Catalonia.jpg in Resources */,
 				4E63BA2A19600DA1006A9541 /* star@2x.png in Resources */,
 				4E63BA2519600DA1006A9541 /* ipod.png in Resources */,
 				4E63BA2219600DA1006A9541 /* airplane@2x.png in Resources */,

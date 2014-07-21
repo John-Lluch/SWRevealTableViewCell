@@ -26,13 +26,64 @@
 
 #import "SWRevealTableViewCell.h"
 
+
+#pragma mark - Helper functions
+
+static CGFloat Scale(void)
+{
+    static CGFloat scale = 0;
+    static dispatch_once_t onceToken;
+    dispatch_once( &onceToken, ^
+    {
+        scale = [[UIScreen mainScreen] scale];
+    });
+    
+    return scale;
+}
+
+
+static UIImage* _imageWithColor_size(UIColor* color, CGSize size)
+{
+    CGFloat scale = Scale();
+    CGRect rect = CGRectMake(0.0f, 0.0f, scale*size.width, scale*size.height);
+    
+    CGColorSpaceRef colorSpace = CGColorSpaceCreateDeviceRGB();
+    CGContextRef context = CGBitmapContextCreate(NULL, rect.size.width, rect.size.height, 8, 0, colorSpace, (CGBitmapInfo)kCGImageAlphaPremultipliedLast);
+    CGColorSpaceRelease(colorSpace);
+    
+    if (context == NULL)
+        return nil;
+    
+    CGContextSetFillColorWithColor(context, [color CGColor]); // <-- Color to fill
+    CGContextFillRect(context, rect);
+    
+    CGImageRef bitmapContext = CGBitmapContextCreateImage(context);
+    CGContextRelease(context);
+    
+    UIImage *theImage = [UIImage imageWithCGImage:bitmapContext scale:scale orientation:UIImageOrientationUp];
+    CGImageRelease(bitmapContext);
+    
+    return theImage;
+}
+
+
+#pragma mark - SWRevealTableViewCell(Internal)
+
+@interface SWRevealTableViewCell(Internal)
+- (void)_getAdjustedRevealPosition:(SWCellRevealPosition*)revealPosition forSymmetry:(CGFloat)symmetry;
+- (NSArray*)_getLeftButtonItems;
+- (NSArray*)_getRightButtonItems;
+- (void)_didTapButtonAtIndex:(NSInteger)indx position:(SWCellRevealPosition)position;
+@end
+
+
 #pragma mark - SWCellButton Item
 
 @class SWUtilityContentView;
 
 @interface SWCellButtonItem()
-@property(nonatomic,strong) void (^handler)(SWCellButtonItem *, SWRevealTableViewCell*);
-@property(nonatomic,assign) SWUtilityContentView *view;
+@property(nonatomic,strong) BOOL (^handler)(SWCellButtonItem *, SWRevealTableViewCell*);
+@property(nonatomic,assign) SWUtilityContentView *view;  // Note that we do not retain this
 @end
 
 @implementation SWCellButtonItem
@@ -75,7 +126,7 @@
 //}
 
 
-- (instancetype)initWithTitle:(NSString *)title image:(UIImage*)image handler:(void(^)(SWCellButtonItem *, SWRevealTableViewCell* cell))handler;
+- (instancetype)initWithTitle:(NSString *)title image:(UIImage*)image handler:(BOOL(^)(SWCellButtonItem *, SWRevealTableViewCell* cell))handler;
 {
     self = [super init];
     if ( self )
@@ -88,13 +139,13 @@
 }
 
 
-+ (instancetype)itemWithTitle:(NSString *)title handler:(void (^)(SWCellButtonItem *, SWRevealTableViewCell *))handler
++ (instancetype)itemWithTitle:(NSString *)title handler:(BOOL(^)(SWCellButtonItem *, SWRevealTableViewCell *))handler
 {
     return [[SWCellButtonItem alloc] initWithTitle:title image:nil handler:handler];
 }
 
 
-+ (instancetype)itemWithImage:(UIImage*)image handler:(void(^)(SWCellButtonItem *item, SWRevealTableViewCell* cell))handler
++ (instancetype)itemWithImage:(UIImage*)image handler:(BOOL(^)(SWCellButtonItem *item, SWRevealTableViewCell* cell))handler
 
 {
     return [[SWCellButtonItem alloc] initWithTitle:nil image:image handler:handler];
@@ -180,21 +231,40 @@ const CGFloat CombinedHeigh = 36;
 @end
 
 
-#pragma mark - SWRevealTableViewCell(Internal)
+#pragma mark - SWUtilityButtonView
 
-@interface SWRevealTableViewCell(Internal)
-- (void)_getAdjustedRevealPosition:(SWCellRevealPosition*)revealPosition forSymmetry:(int)symmetry;
-- (NSArray*)_getLeftButtonItems;
-- (NSArray*)_getRightButtonItems;
-- (void)_didTapButtonAtIndex:(NSInteger)indx position:(SWCellRevealPosition)position;
+@interface SWUtilityButtonView: SWUtilityView
+@end
+
+@implementation SWUtilityButtonView
+
+- (void)layoutForPosition:(SWCellRevealPosition)position reversed:(BOOL)reversed
+{
+    CGRect bounds = self.bounds;
+    
+    UIView *button = [self.subviews firstObject];
+    
+    CGRect frame = button.frame;
+    frame.origin.x = (!!reversed == position<SWCellRevealPositionCenter ? bounds.size.width-frame.size.width: 0);
+    frame.origin.y = 0;
+    frame.size.height = bounds.size.height;
+
+    [button setFrame:frame];
+}
+
 @end
 
 
 #pragma mark - SWUtilityContentView
 
+//static const CGFloat DampeningWidth = 40;
+static const CGFloat BrakeFactor = 0.1667;
+static const CGFloat OverDrawWidth = 60;
+
 @interface SWUtilityContentView: SWUtilityView
 {
     __weak SWRevealTableViewCell *_c;
+    BOOL _isRightExtended, _isLeftExtended;
 }
 
 @property (nonatomic,readonly) NSArray *leftButtonItems;
@@ -205,31 +275,6 @@ const CGFloat CombinedHeigh = 36;
 @end
 
 
-static UIImage* _imageWithColor_size(UIColor* color, CGSize size)
-{
-    CGFloat scale = [[UIScreen mainScreen] scale];
-    CGRect rect = CGRectMake(0.0f, 0.0f, scale*size.width, scale*size.height);
-    
-    CGColorSpaceRef colorSpace = CGColorSpaceCreateDeviceRGB();
-    CGContextRef context = CGBitmapContextCreate(NULL, rect.size.width, rect.size.height, 8, 0, colorSpace, (CGBitmapInfo)kCGImageAlphaPremultipliedLast);
-    CGColorSpaceRelease(colorSpace);
-    
-    if (context == NULL)
-        return nil;
-    
-    CGContextSetFillColorWithColor(context, [color CGColor]); // <-- Color to fill
-    CGContextFillRect(context, rect);
-    
-    CGImageRef bitmapContext = CGBitmapContextCreateImage(context);
-    CGContextRelease(context);
-    
-    UIImage *theImage = [UIImage imageWithCGImage:bitmapContext scale:scale orientation:UIImageOrientationUp];
-    CGImageRelease(bitmapContext);
-    
-    return theImage;
-}
-
-
 @implementation SWUtilityContentView
 
 - (id)initWithRevealTableViewCell:(SWRevealTableViewCell *)revealTableViewCell frame:(CGRect)frame
@@ -237,7 +282,6 @@ static UIImage* _imageWithColor_size(UIColor* color, CGSize size)
     self = [super initWithFrame:frame];
     if ( self )
     {
-        [self setAutoresizesSubviews:NO];
         _c = revealTableViewCell;
     }
     return self;
@@ -246,7 +290,6 @@ static UIImage* _imageWithColor_size(UIColor* color, CGSize size)
 
 - (NSInteger)leftCount
 {
-
     [self _prepareLeftButtonItems];
     return _leftButtonItems.count;
 }
@@ -342,18 +385,18 @@ static UIImage* _imageWithColor_size(UIColor* color, CGSize size)
 
 - (CGFloat)frontLocationForPosition:(SWCellRevealPosition)revealPosition
 {
-    int symmetry = revealPosition<SWCellRevealPositionCenter? -1 : 1;
-    
     CGFloat location = 0.0f;
-    CGFloat itemsWidth = revealPosition<SWCellRevealPositionCenter? [self rightRevealWidth] : [self leftRevealWidth];
+    
+    CGFloat symmetry = revealPosition<SWCellRevealPositionCenter? -1 : 1;
+    CGFloat revealWidth = revealPosition<SWCellRevealPositionCenter? [self rightRevealWidth] : [self leftRevealWidth];
     
     [_c _getAdjustedRevealPosition:&revealPosition forSymmetry:symmetry];
     
     if ( revealPosition == SWCellRevealPositionRight )
-        location = itemsWidth;
+        location = revealWidth;
     
     else if ( revealPosition > SWCellRevealPositionRight )
-        location = itemsWidth;
+        location = revealWidth+OverDrawWidth;
 
     return location*symmetry;
 }
@@ -380,32 +423,75 @@ static UIImage* _imageWithColor_size(UIColor* color, CGSize size)
 }
 
 
+- (BOOL)performExtendedActionIfNeeded
+{
+    BOOL dismiss = NO;
+    if ( _isLeftExtended )
+        dismiss = [self _performActionForItem:[_leftButtonItems firstObject]];
+
+    if ( _isRightExtended )
+        dismiss = [self _performActionForItem:[_rightButtonItems firstObject]];
+    
+    return dismiss;
+}
+
+
+- (BOOL)_performActionForItem:(SWCellButtonItem*)item
+{
+    BOOL (^handler)(SWCellButtonItem*,SWRevealTableViewCell*) = item.handler;
+    
+    BOOL dismiss = NO;
+    if ( handler )
+        dismiss = handler( item, _c );
+    
+    return dismiss;
+}
+
+
+- (void)_buttonTouchUpAction:(SWUtilityButton*)button
+{
+    SWCellButtonItem *item = button.item;
+    if ( [self _performActionForItem:item] )
+        [_c setRevealPosition:SWCellRevealPositionCenter animated:YES];
+}
+
+
 - (void)_prepareLeftButtonItems
 {
     if ( _leftButtonItems == nil )
-        _leftButtonItems = [_c _getLeftButtonItems];
+        _leftButtonItems = [self _preparedItems:[_c _getLeftButtonItems]];
 }
 
 
 - (void)_prepareRightButtonItems
 {
     if ( _rightButtonItems == nil )
-        _rightButtonItems = [_c _getRightButtonItems];
+        _rightButtonItems = [self _preparedItems:[_c _getRightButtonItems]];
+}
+
+
+- (NSArray*)_preparedItems:(NSArray*)itemsArray
+{
+    for ( SWCellButtonItem *item in itemsArray )
+        item.view = self;
+    
+    return [itemsArray copy];
 }
 
 
 - (void)_deployItemsForNewPosition:(SWCellRevealPosition)newPosition
 {
     NSArray *items = newPosition<SWCellRevealPositionCenter ? _leftButtonItems : _rightButtonItems;
-    NSMutableArray * __strong* views =  newPosition<SWCellRevealPositionCenter ? &_leftViews : &_rightViews;
-    BOOL reversedCascade = newPosition<SWCellRevealPositionCenter ? _c.leftCascadeReversed : _c.rightCascadeReversed;
-    UIViewAutoresizing mask = UIViewAutoresizingFlexibleHeight |
-        (!!reversedCascade == newPosition<SWCellRevealPositionCenter ? UIViewAutoresizingFlexibleLeftMargin: UIViewAutoresizingFlexibleRightMargin);
-
+    
     if ( items.count == 0 )
         return;
     
+    NSMutableArray * __strong* views =  newPosition<SWCellRevealPositionCenter ? &_leftViews : &_rightViews;
+    BOOL reversed = newPosition<SWCellRevealPositionCenter ? _c.leftCascadeReversed : _c.rightCascadeReversed;
+    
     *views = [NSMutableArray array];
+    *(newPosition<SWCellRevealPositionCenter ? &_isLeftExtended : &_isRightExtended) = NO;
+    
     
     for ( SWCellButtonItem *item in items )
     {
@@ -413,14 +499,16 @@ static UIImage* _imageWithColor_size(UIColor* color, CGSize size)
         NSAssert( [item isKindOfClass:[SWCellButtonItem class]], @"Cell button items must be of class SWCellButtonItem" );
         
         // get button item properties
-        UIColor *color = item.backgroundColor;
+        UIColor *backColor = item.backgroundColor;
         UIColor *tintColor = item.tintColor;
         UIImage *image = item.image;
         NSString *title = item.title;
     
         // create a utility view for the item
-        SWUtilityView *utilityView = [[SWUtilityView alloc] initWithFrame:CGRectMake(0, 0, item.width, 20)];
-        [utilityView setClipsToBounds:YES];
+        SWUtilityButtonView *utilityButtonView = [[SWUtilityButtonView alloc] initWithFrame:CGRectMake(0, 0, item.width, 20)];
+        [utilityButtonView setAutoresizesSubviews:NO];
+        [utilityButtonView setClipsToBounds:YES];
+        [utilityButtonView setCustomBackgroundColor:backColor];
         
 #if SupportsVisualEffects
         // add a visual effect
@@ -437,50 +525,48 @@ static UIImage* _imageWithColor_size(UIColor* color, CGSize size)
         // add a button
         SWUtilityButton *button = [SWUtilityButton buttonWithType:UIButtonTypeSystem];
         [button addTarget:self action:@selector(_buttonTouchUpAction:) forControlEvents:UIControlEventTouchUpInside];
-        button.autoresizingMask = mask;
         
-        button.frame = utilityView.bounds;
+        button.frame = utilityButtonView.bounds;
         button.titleLabel.numberOfLines = 0;
         button.titleLabel.textAlignment = NSTextAlignmentCenter;
         button.item = item;
         
-        // Depending on which item properties the developer has set, we chose configure the button to make the best of it
-        
+        // Depending on actual item properties, we configure the button to make the best of it
         if ( image )
         {
             // we do not want to scale user provided images
             [button.imageView setContentMode:UIViewContentModeCenter];
+            if ( title.length>0 )
+            {
+                // set a custom combined layout if both image and title are given
+                [button.titleLabel setFont:[UIFont preferredFontForTextStyle:UIFontTextStyleFootnote]];
+                [button setWantsCombinedLayout:YES];
+            }
         }
-        
-        if ( image && title.length>0 )
+        else
         {
-            [button.titleLabel setFont:[UIFont preferredFontForTextStyle:UIFontTextStyleFootnote]];
-            [button setWantsCombinedLayout:YES];
-        }
-        
-        if ( image && color )
-        {
-            [utilityView setCustomBackgroundColor:color];
-        }
-        
-        if ( image==nil && color )
-        {
-            image = _imageWithColor_size(color, CGSizeMake(1,1));
-            image = [image imageWithRenderingMode:UIImageRenderingModeAlwaysOriginal];
+            // set a white transparent higlited state if no image is given
+            UIImage *highImage = _imageWithColor_size([UIColor colorWithWhite:1 alpha:0.333], CGSizeMake(1,1));
+            highImage = [highImage imageWithRenderingMode:UIImageRenderingModeAlwaysOriginal];
+            [button setImage:highImage forState:UIControlStateHighlighted];
             [button.imageView setContentMode:UIViewContentModeScaleToFill];
         }
         
+        // set common button properties
         [button setTintColor:tintColor];
         [button setTitle:title forState:UIControlStateNormal];
         [button setImage:image forState:UIControlStateNormal];
         
-        [utilityView addSubview:button];
-        [*views addObject:utilityView];
+        // add button to its utiliyButtonView
+        [utilityButtonView addSubview:button];
+        [*views addObject:utilityButtonView];
         
-        if ( reversedCascade ) [self insertSubview:utilityView atIndex:0];
-        else [self addSubview:utilityView];
+        // add utilityButtonView
+        if ( reversed ) [self insertSubview:utilityButtonView atIndex:0];
+        else [self addSubview:utilityButtonView];
     }
     
+    // layout everything to the default position
     CGFloat xLocation = [self frontLocationForPosition:SWCellRevealPositionCenter];
     [self layoutForLocation:xLocation];
 }
@@ -489,6 +575,7 @@ static UIImage* _imageWithColor_size(UIColor* color, CGSize size)
 - (void)_undeployItemsForNewPosition:(SWCellRevealPosition)newPosition
 {
     NSMutableArray * __strong* views = newPosition<SWCellRevealPositionCenter ? &_leftViews : &_rightViews;
+    *(newPosition<SWCellRevealPositionCenter ? &_isLeftExtended : &_isRightExtended) = NO;
     
     for ( SWUtilityView *utilityView in *views )
     {
@@ -499,14 +586,30 @@ static UIImage* _imageWithColor_size(UIColor* color, CGSize size)
 }
 
 
-- (void)_layoutViewsForNewPosition:(SWCellRevealPosition)newPosition location:(CGFloat)xLocation //symmetry:(NSInteger)symmetry
+- (void)_layoutViewsForNewPosition:(SWCellRevealPosition)newPosition location:(CGFloat)xLocation
 {
     NSArray *views = newPosition<SWCellRevealPositionCenter? _leftViews : _rightViews;
     NSArray *items = newPosition<SWCellRevealPositionCenter ? _leftButtonItems : _rightButtonItems;
-    CGFloat maxLocation = newPosition<SWCellRevealPositionCenter ? [self leftRevealWidth] : -[self rightRevealWidth] ;
+    CGFloat maxLocation = newPosition<SWCellRevealPositionCenter ? [self leftRevealWidth] : -[self rightRevealWidth];
+    BOOL reversed = newPosition<SWCellRevealPositionCenter ? _c.leftCascadeReversed : _c.rightCascadeReversed;
+    BOOL accionable = newPosition<SWCellRevealPositionCenter ? _c.performsActionOnLeftOverdraw : _c.performsActionOnRightOverdraw;
+    BOOL *isExtended = newPosition<SWCellRevealPositionCenter ? &_isLeftExtended : &_isRightExtended;
     CGFloat symmetry = newPosition<SWCellRevealPositionCenter ? 1 : -1;
     
-    if ( abs(xLocation) > abs(maxLocation) ) xLocation = maxLocation;
+    CGFloat overdrawWidth = symmetry*OverDrawWidth;
+    BOOL isExtendedOverDraw = abs(xLocation) >= abs(maxLocation+overdrawWidth);
+    
+    CGFloat xTarget = xLocation;
+    if ( abs(xLocation) > abs(maxLocation) )
+    {
+        CGFloat overdraw = xLocation-maxLocation;
+//        CGFloat dampeningWidth = symmetry*DampeningWidth;
+//        xTarget = maxLocation + (overdraw*dampeningWidth)/(overdraw+dampeningWidth);
+        xTarget = maxLocation + overdraw*BrakeFactor;
+        
+        CGFloat scale = Scale();
+        xTarget = round(scale*xTarget)/scale;  // round to nearest screen pixel, good for retina and non-retina
+    }
     
     NSInteger count = views.count;
     CGSize size = self.bounds.size;
@@ -519,35 +622,51 @@ static UIImage* _imageWithColor_size(UIColor* color, CGSize size)
         CGFloat width = item.width;
         endLocation += width*symmetry;
         
-        CGFloat lWidth = width*xLocation/maxLocation;
-        CGFloat location =  xLocation*(endLocation/maxLocation);
+        BOOL mayExtend = ( i==0 && reversed && accionable );
+        
+        CGFloat lWidth, location;
+        if ( isExtendedOverDraw && mayExtend )
+        {
+            lWidth = abs(xLocation);
+            location = lWidth*symmetry;
+        }
+        else
+        {
+            lWidth = width*xTarget/maxLocation;
+            location = xTarget*(endLocation/maxLocation);
+        }
         
         CGFloat xReference = symmetry<0 ? size.width+0 : 0-lWidth;
 
-// This works better on iOS8
-//        CGFloat x = 0.5*floor(2*(xReference+location));
-//        CGFloat w = 0.5*ceil(2*lWidth);
-        
-// This works better on iOS7
-        CGFloat x = floor(xReference+location);
-        CGFloat w = ceil(lWidth);
+        CGFloat scale = Scale();
+        CGFloat x = floor(scale*(xReference+location))/scale; // round to nearest halph point, good for retina and non-retina
+        CGFloat w = ceil(scale*lWidth)/scale;
         
         CGRect frame = CGRectMake(x, 0, w, size.height);
+        SWUtilityButtonView *utilityButtonView = [views objectAtIndex:i];
         
-        SWUtilityView *utilityView = [views objectAtIndex:i];
-        [utilityView setFrame:frame];
+        void (^block)(void) = ^
+        {
+            [utilityButtonView setFrame:frame];
+            [utilityButtonView layoutForPosition:newPosition reversed:reversed];
+        };
+        
+        BOOL animated = isExtendedOverDraw != *isExtended;
+        *isExtended = isExtendedOverDraw;
+        
+        if ( mayExtend && animated )
+        {
+            NSTimeInterval duration = isExtendedOverDraw?0.3:0.5;
+            [UIView animateWithDuration:duration delay:0 usingSpringWithDamping:1 initialSpringVelocity:0 options:0
+            animations:block completion:nil];
+        }
+        else
+        {
+            block();
+        }
     }
 }
 
-
-- (void)_buttonTouchUpAction:(SWUtilityButton*)button
-{
-    SWCellButtonItem *item = button.item;
-    void (^handler)(SWCellButtonItem*,SWRevealTableViewCell*) = item.handler;
-    
-    if ( handler )
-        handler( item, _c );
-}
 
 @end
 
@@ -558,10 +677,10 @@ static UIImage* _imageWithColor_size(UIColor* color, CGSize size)
 
 - (void)showFromCellButtonItem:(SWCellButtonItem *)item animated:(BOOL)animated
 {
-    SWUtilityContentView *utilityView = item.view;
-    CGRect frame = [utilityView referenceFrameForCellButtonItem:item];
+    SWUtilityContentView *utilityContentView = item.view;
+    CGRect frame = [utilityContentView referenceFrameForCellButtonItem:item];
     
-    [self showFromRect:frame inView:utilityView animated:animated];
+    [self showFromRect:frame inView:utilityContentView animated:animated];
 }
 
 @end
@@ -669,11 +788,8 @@ const NSInteger SWCellRevealPositionNone = 0xff;
     _rightViewPosition = SWCellRevealPositionCenter;
     _quickFlickVelocity = 150.0f;
     _revealAnimationDuration = 0.5;
-    _bounceBackOnRightOverdraw = YES;
-    _bounceBackOnLeftOverdraw = YES;
-    _rightCascadeReversed = NO;
-    _leftCascadeReversed = NO;
     _animationQueue = [NSMutableArray array];
+    [self setCellRevealMode:SWCellRevealModeNormal];
 }
 
 
@@ -724,6 +840,7 @@ const NSInteger SWCellRevealPositionNone = 0xff;
         
         // Create a view to hold our custom utility views and insert it into the cell hierarchy
         _utilityContentView = [[SWUtilityContentView alloc] initWithRevealTableViewCell:self frame:self.bounds];
+        [_utilityContentView setAutoresizesSubviews:NO];
         [_utilityContentView setAutoresizingMask:UIViewAutoresizingFlexibleWidth|UIViewAutoresizingFlexibleHeight];
         [_revealLayoutView insertSubview:_utilityContentView atIndex:0];
     
@@ -738,7 +855,7 @@ const NSInteger SWCellRevealPositionNone = 0xff;
     }
     else
     {
-        [_utilityContentView resetButtonItems];  // this will prevent retain cycles
+        [_utilityContentView resetButtonItems];  // this will prevent retain cycles around item action blocks
     }
 }
 
@@ -754,6 +871,12 @@ const NSInteger SWCellRevealPositionNone = 0xff;
 - (NSArray *)leftCellButtonItems
 {
     return _utilityContentView.leftButtonItems;
+}
+
+
+- (SWCellRevealPosition)revealPosition;
+{
+    return _frontViewPosition;
 }
 
 
@@ -790,12 +913,30 @@ const NSInteger SWCellRevealPositionNone = 0xff;
         [self resetCellAnimated:NO];
 }
 
+- (void)setCellRevealMode:(SWCellRevealMode)cellRevealMode
+{
+    _cellRevealMode = cellRevealMode;
+    BOOL reversed = NO, bounce = NO, action = NO;
+    switch ( cellRevealMode )
+    {
+        case SWCellRevealModeNormalWithBounce: bounce = YES ; break;
+        case SWCellRevealModeReversedWithAction: reversed = YES; action = YES ; break;
+        default : break;
+    }
+    _rightCascadeReversed = reversed;
+    _leftCascadeReversed = reversed;
+    _bounceBackOnRightOverdraw = bounce;
+    _bounceBackOnLeftOverdraw = bounce;
+    _performsActionOnRightOverdraw = action;
+    _performsActionOnLeftOverdraw = action;
+}
+
 
 #pragma mark - Reveal Location
 
 - (void)_setRevealLocation:(CGFloat)xLocation
 {
-    // set the new reveal location
+    // store the new reveal location
     _revealLocation = xLocation;
     
     // compensate our utilityContentView for cell layout comming next.
@@ -804,6 +945,7 @@ const NSInteger SWCellRevealPositionNone = 0xff;
     utilityFrame.origin.x = -xLocation;
     [_utilityContentView setFrame:utilityFrame];
     
+    // layout cell
     if ( [_revealLayoutView respondsToSelector:@selector(setContentOffset:)] )
     {
         // We have an underlying UIScrollView supporting our views (iOS7). We just set its contentOfset,
@@ -813,16 +955,16 @@ const NSInteger SWCellRevealPositionNone = 0xff;
 
     else
     {
-        // Ok, so no underlying scrollView for our layout needs :-( (iOS8).
+        // Ok, so no underlying scrollView for our layout needs :-/ (iOS8).
         // We must explicitly offset the cell contentView and its siblings to create our custom layout.
-        // We first call super layoutSubviews to get base cell subview frames from Apple implementation.
+        // First, we call super layoutSubviews to get base cell subview frames from Apple implementation.
         [super layoutSubviews];
         
-        // Now we apply our custom layout offset
+        // Now we apply our custom layout offset to the contentView sibling views
         for ( UIView *view in _revealLayoutView.subviews )
         {
-            // One of the siblings of the cell contentView is the cell's separatorView.
-            // We do not want to apply our custom layout offseting to that particular view, so we skip that view based on its class name.
+            // One of the contentView's siblings of is the cell's separatorView.
+            // We do not want to apply our custom layout to that particular view, so we skip that view based on its class name.
             // This is of course hacky and may break in the future. However since we choose to apply our layout directly to the cell, as oposed to
             // the cell's contentView we do not have other choice than filtering this here.
             // If this code breaks on a future iOS release it will be very easy to fix anyway.
@@ -839,15 +981,14 @@ const NSInteger SWCellRevealPositionNone = 0xff;
 
 #pragma mark - Button Items
 
+
 - (NSArray*)_getLeftButtonItems
 {
     NSArray *leftItems = nil;
     
-    if ( _dataSource )
-        leftItems = [self _preparedItems:[_dataSource leftButtonItemsInRevealTableViewCell:self]];
-        
-    // we will return nil if dataSource has not been set yet, some array (maybe empty) otherwise
-    // once we got an array the data source is never asked again
+    if ( [_dataSource respondsToSelector:@selector(leftButtonItemsInRevealTableViewCell:)] )
+        leftItems = [_dataSource leftButtonItemsInRevealTableViewCell:self];
+    
     return leftItems;
 }
 
@@ -856,27 +997,16 @@ const NSInteger SWCellRevealPositionNone = 0xff;
 {
     NSArray *rightItems = nil;
     
-    if ( _dataSource )
-        rightItems = [self _preparedItems:[_dataSource rightButtonItemsInRevealTableViewCell:self]];
+    if ( [_dataSource respondsToSelector:@selector(rightButtonItemsInRevealTableViewCell:)] )
+        rightItems = [_dataSource rightButtonItemsInRevealTableViewCell:self];
 
-    // we will return nil if dataSource has not been set yet, some array (maybe empty) otherwise
-    // once we got an array the data source is never asked again
     return rightItems;
-}
-
-
-- (NSArray*)_preparedItems:(NSArray*)itemsArray
-{
-    for ( SWCellButtonItem *item in itemsArray )
-        item.view = _utilityContentView;
-    
-    return [itemsArray copy];
 }
 
 
 #pragma mark - Symmetry
 
-- (void)_getAdjustedRevealPosition:(SWCellRevealPosition*)revealPosition forSymmetry:(int)symmetry
+- (void)_getAdjustedRevealPosition:(SWCellRevealPosition*)revealPosition forSymmetry:(CGFloat)symmetry
 {
     if ( symmetry < 0 )
         *revealPosition = SWCellRevealPositionCenter + symmetry*(*revealPosition-SWCellRevealPositionCenter);
@@ -886,7 +1016,7 @@ const NSInteger SWCellRevealPositionNone = 0xff;
 - (void)_getDragLocation:(CGFloat*)xLocation progress:(CGFloat*)progress
 {
     *xLocation = _revealLocation;
-    int symmetry = *xLocation<0 ? -1 : 1;
+    CGFloat symmetry = *xLocation<0 ? -1 : 1;
     CGFloat xWidth = symmetry < 0 ? [_utilityContentView rightRevealWidth] : [_utilityContentView leftRevealWidth];
     *progress = *xLocation/xWidth * symmetry;
 }
@@ -973,7 +1103,7 @@ const NSInteger SWCellRevealPositionNone = 0xff;
 
 #pragma mark - Utility views deployment and layout
 
-// Primitive method for view controller deployment and animated layout to the given position.
+// Primitive method for utility view deployment and animated layout to the given position.
 - (void)_setRevealPosition:(SWCellRevealPosition)newPosition withDuration:(NSTimeInterval)duration
 {
     void (^frontDeploymentCompletion)() = [self _frontDeploymentForNewRevealPosition:newPosition];
@@ -1020,7 +1150,7 @@ const NSInteger SWCellRevealPositionNone = 0xff;
     }
 }
 
-// Deploy/Undeploy of the front view controller following the containment principles. Returns a block
+// Deploy/Undeploy of the utility view. Returns a block
 // that must be invoked on animation completion in order to finish deployment
 - (void (^)(void))_frontDeploymentForNewRevealPosition:(SWCellRevealPosition)newPosition
 {
@@ -1053,7 +1183,7 @@ const NSInteger SWCellRevealPositionNone = 0xff;
     return completion;
 }
 
-// Deploy/Undeploy of the left view controller following the containment principles. Returns a block
+// Deploy/Undeploy of the left view items. Returns a block
 // that must be invoked on animation completion in order to finish deployment
 - (void (^)(void))_leftDeploymentForNewRevealPosition:(SWCellRevealPosition)newPosition
 {
@@ -1075,7 +1205,7 @@ const NSInteger SWCellRevealPositionNone = 0xff;
     return [self _deploymentForLeftItemsWithAppear:appear disappear:disappear];
 }
 
-// Deploy/Undeploy of the right view controller following the containment principles. Returns a block
+// Deploy/Undeploy of the right view items. Returns a block
 // that must be invoked on animation completion in order to finish deployment
 - (void (^)(void))_rightDeploymentForNewRevealPosition:(SWCellRevealPosition)newPosition
 {
@@ -1124,24 +1254,27 @@ const NSInteger SWCellRevealPositionNone = 0xff;
 
 - (void)layoutForLocation:(CGFloat)xLocation
 {
-    // layout utilityContentView now
-    [_utilityContentView layoutForLocation:xLocation];
-
-    // compute offset damper
+    // apply damper effect on the overdraw area
     CGFloat maxLocation = xLocation<0 ? -[_utilityContentView rightRevealWidth] : [_utilityContentView leftRevealWidth];
-    if ( abs(xLocation) > abs(maxLocation) )
+    CGFloat symmetry = xLocation<0 ? -1 : 1;
+    CGFloat overdrawLocation = maxLocation + symmetry*OverDrawWidth;
+    
+    if ( abs(xLocation) > abs(overdrawLocation) )
     {
-        CGFloat damperWidth = xLocation<0 ? -80 : 80;
-        CGFloat overdraw = xLocation-maxLocation;
-        xLocation = maxLocation + (overdraw*damperWidth)/(overdraw+damperWidth) ;
-        xLocation = 0.5*round(2*xLocation);  // round to nearest halph point, good for retina
+        CGFloat secondaryOverdraw = xLocation-overdrawLocation;
+//        CGFloat dampeningWidth = symmetry*DampeningWidth;
+//        xLocation = overdrawLocation + (secondaryOverdraw*dampeningWidth)/(secondaryOverdraw+dampeningWidth);
+        xLocation = overdrawLocation + secondaryOverdraw*BrakeFactor;
+
+        CGFloat scale = Scale();
+        xLocation = round(scale*xLocation)/scale;  // round to nearest halph point, good for retina and non-retina
     }
-    
-//    // before setting our custom layout we call super layoutSubviews to get cell subview frames to the system values
-//    [super layoutSubviews];
-    
-    // now we update frames according to our required offset
+
+    // update frames according to our required offset
     [self _setRevealLocation:xLocation];
+    
+    // layout utilityContentView
+    [_utilityContentView layoutForLocation:xLocation];
 }
 
 
@@ -1179,18 +1312,12 @@ const NSInteger SWCellRevealPositionNone = 0xff;
     if ( !_allowsRevealInEditMode && self.editing )
         return NO;
     
-    // forbid gesture if the initial translation is not horizontal
-    UIView *recognizerView = _panGestureRecognizer.view;
-//    CGPoint translation = [_panGestureRecognizer translationInView:recognizerView];
-//    NSLog( @"translation:%@", NSStringFromCGPoint(translation) );
-//    if ( fabs(translation.y/translation.x) > 1 )
-//        return NO;
-    
     // forbid gesture if the following delegate is implemented and returns NO
     if ( [_delegate respondsToSelector:@selector(revealTableViewCellPanGestureShouldBegin:)] )
         if ( [_delegate revealTableViewCellPanGestureShouldBegin:self] == NO )
             return NO;
 
+    UIView *recognizerView = _panGestureRecognizer.view;
     CGFloat xLocation = [_panGestureRecognizer locationInView:recognizerView].x;
     CGFloat width = recognizerView.bounds.size.width;
     
@@ -1284,7 +1411,7 @@ const NSInteger SWCellRevealPositionNone = 0xff;
     //NSLog( @"Velocity:%1.4f", velocity);
     
     // depending on position we compute a simetric replacement of widths and positions
-    int symmetry = xLocation<0 ? -1 : 1;
+    CGFloat symmetry = xLocation<0 ? -1 : 1;
     
     // symmetric computing of widths
     CGFloat revealWidth = symmetry<0 ? [_utilityContentView rightRevealWidth] : [_utilityContentView leftRevealWidth];
@@ -1306,13 +1433,10 @@ const NSInteger SWCellRevealPositionNone = 0xff;
         {
             revealPosition = SWCellRevealPositionRight;
             journey = revealWidth - xLocation;
-            if (xLocation > revealWidth)
+            if (xLocation >= revealWidth+OverDrawWidth)
             {
-                if (!bounceBack )
-                {
-                    revealPosition = SWCellRevealPositionRight;
-                    journey = revealWidth - xLocation;
-                }
+                if (bounceBack) revealPosition = SWCellRevealPositionCenter;
+                else revealPosition = SWCellRevealPositionRightExtended;
             }
         }
         
@@ -1326,19 +1450,23 @@ const NSInteger SWCellRevealPositionNone = 0xff;
         if (xLocation > revealWidth*0.5f)
         {
             revealPosition = SWCellRevealPositionRight;
-            if (xLocation > revealWidth)
+            if (xLocation >= revealWidth+OverDrawWidth)
             {
-                if (bounceBack)
-                    revealPosition = SWCellRevealPositionCenter;
+                if (bounceBack) revealPosition = SWCellRevealPositionCenter;
+                else revealPosition = SWCellRevealPositionRightExtended;
             }
         }
     }
 
-    // symetric replacement of frontViewPosition
+    // symetric replacement of revealPosition
     [self _getAdjustedRevealPosition:&revealPosition forSymmetry:symmetry];
     
     // Animate to the final position
     [self _notifyPanGestureEnded];
+
+    if ( [_utilityContentView performExtendedActionIfNeeded] )
+        revealPosition = SWCellRevealPositionCenter;
+
     [self _setRevealPosition:revealPosition withDuration:duration];
 }
 
