@@ -111,7 +111,7 @@ static NSString *RevealCellReuseIdentifier = @"RevealCellReuseIdentifier";
     }
     if ( indexPath.section == SectionImage)
     {
-        cell.cellRevealMode = SWCellRevealModeNormalWithBounce;
+        cell.cellRevealMode = SWCellRevealModeNormal;
         [cell setAccessoryType:UITableViewCellAccessoryNone];
     }
     

@@ -59,6 +59,7 @@
 
 @class SWRevealTableViewCell;
 @class UIVisualEffect;
+@class UIPopoverPresentationController;
 
 
 #pragma mark - SWCellButtonItem
@@ -115,13 +116,13 @@ typedef NS_ENUM(NSInteger, SWCellRevealPosition)
 
 typedef NS_ENUM(NSInteger, SWCellRevealMode)
 {
-    // cascadeReversed is set to NO, bounceBackOnRightOverdraw is set to NO, actionOnOverdraw is set to NO
+    // cascadeReversed is set to NO, bounceBackOnOverdraw is set to NO, actionOnOverdraw is set to NO
     SWCellRevealModeNormal,
 
-    // cascadeReversed is set to NO, bounceBackOnRightOverdraw is set to YES, actionOnOverdraw is set to NO
+    // cascadeReversed is set to NO, bounceBackOnOverdraw is set to YES, actionOnOverdraw is set to NO
     SWCellRevealModeNormalWithBounce,
 
-    // cascadeReversed is set to YES, bounceBackOnRightOverdraw is set to NO, actionOnOverdraw is set to YES
+    // cascadeReversed is set to YES, bounceBackOnOverdraw is set to NO, actionOnOverdraw is set to YES
     SWCellRevealModeReversedWithAction,
 };
 
@@ -132,6 +133,13 @@ typedef NS_ENUM(NSInteger, SWCellRevealMode)
 - (void)showFromCellButtonItem:(SWCellButtonItem *)item animated:(BOOL)animated;
 @end
 
+#pragma mark - UIViewPopoverPresentationController
+
+#if __IPHONE_OS_VERSION_MAX_ALLOWED >= 80000
+@interface UIPopoverPresentationController(SWCellButtonItem)
+@property(nonatomic) SWCellButtonItem *cellButtonItem;
+@end
+#endif
 
 #pragma mark - SWRevealTableViewCell
 

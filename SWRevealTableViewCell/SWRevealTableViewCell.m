@@ -625,7 +625,7 @@ static const CGFloat OverDrawWidth = 60;
         BOOL mayExtend = ( i==0 && reversed && accionable );
         
         CGFloat lWidth, location;
-        if ( isExtendedOverDraw && mayExtend )
+        if ( mayExtend && isExtendedOverDraw )
         {
             lWidth = abs(xLocation);
             location = lWidth*symmetry;
@@ -651,10 +651,14 @@ static const CGFloat OverDrawWidth = 60;
             [utilityButtonView layoutForPosition:newPosition reversed:reversed];
         };
         
-        BOOL animated = isExtendedOverDraw != *isExtended;
-        *isExtended = isExtendedOverDraw;
+        BOOL animated = NO;
+        if ( mayExtend )
+        {
+            animated = (isExtendedOverDraw != *isExtended);
+            *isExtended = isExtendedOverDraw;
+        }
         
-        if ( mayExtend && animated )
+        if ( animated )
         {
             NSTimeInterval duration = isExtendedOverDraw?0.3:0.5;
             [UIView animateWithDuration:duration delay:0 usingSpringWithDamping:1 initialSpringVelocity:0 options:0
@@ -685,6 +689,23 @@ static const CGFloat OverDrawWidth = 60;
 
 @end
 
+#pragma mark - UIViewPopoverPresentationController
+
+#if __IPHONE_OS_VERSION_MAX_ALLOWED >= 80000
+@implementation UIPopoverPresentationController(SWCellButtonItem)
+
+@dynamic cellButtonItem;
+- (void)setCellButtonItem:(SWCellButtonItem *)cellButtonItem
+{
+    SWUtilityContentView *utilityContentView = cellButtonItem.view;
+    CGRect frame = [utilityContentView referenceFrameForCellButtonItem:cellButtonItem];
+    self.barButtonItem = nil;
+    self.sourceView = utilityContentView;
+    self.sourceRect = frame;
+}
+
+@end
+#endif
 
 #pragma mark - SWDirectionPanGestureRecognizer
 
@@ -1416,6 +1437,7 @@ const NSInteger SWCellRevealPositionNone = 0xff;
     // symmetric computing of widths
     CGFloat revealWidth = symmetry<0 ? [_utilityContentView rightRevealWidth] : [_utilityContentView leftRevealWidth];
     BOOL bounceBack = symmetry<0 ? _bounceBackOnRightOverdraw : _bounceBackOnLeftOverdraw;
+    BOOL reversed = symmetry<0 ? _leftCascadeReversed : _rightCascadeReversed;
   
     // symmetric replacement of location
     xLocation = xLocation * symmetry;
@@ -1431,12 +1453,13 @@ const NSInteger SWCellRevealPositionNone = 0xff;
         CGFloat journey = xLocation;
         if (velocity*symmetry > 0.0f)
         {
-            revealPosition = SWCellRevealPositionRight;
             journey = revealWidth - xLocation;
+            revealPosition = SWCellRevealPositionRight;
             if (xLocation >= revealWidth+OverDrawWidth)
             {
                 if (bounceBack) revealPosition = SWCellRevealPositionCenter;
-                else revealPosition = SWCellRevealPositionRightExtended;
+                else if (reversed) revealPosition = SWCellRevealPositionRightExtended;
+                else revealPosition = SWCellRevealPositionRight;
             }
         }
         
@@ -1453,7 +1476,8 @@ const NSInteger SWCellRevealPositionNone = 0xff;
             if (xLocation >= revealWidth+OverDrawWidth)
             {
                 if (bounceBack) revealPosition = SWCellRevealPositionCenter;
-                else revealPosition = SWCellRevealPositionRightExtended;
+                else if (reversed) revealPosition = SWCellRevealPositionRightExtended;
+                else revealPosition = SWCellRevealPositionRight;
             }
         }
     }
@@ -1461,14 +1485,17 @@ const NSInteger SWCellRevealPositionNone = 0xff;
     // symetric replacement of revealPosition
     [self _getAdjustedRevealPosition:&revealPosition forSymmetry:symmetry];
     
-    // Animate to the final position
+    // Notify delegate
     [self _notifyPanGestureEnded];
 
+    // Perform item action if necessary
     if ( [_utilityContentView performExtendedActionIfNeeded] )
         revealPosition = SWCellRevealPositionCenter;
 
+    // Animate to the final position
     [self _setRevealPosition:revealPosition withDuration:duration];
 }
+
 
 
 - (void)_handleRevealGestureStateCancelledWithRecognizer:(UIPanGestureRecognizer *)recognizer
