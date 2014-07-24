@@ -32,10 +32,7 @@
 
  RELEASE NOTES
  
- Version 0.3.2 (current Version)
-    - Bug fixes
-
- Version 0.3.1
+ Version 0.3.1 to 0.3.3 (current Version)
     - Bug fixes
  
  Version 0.3.0

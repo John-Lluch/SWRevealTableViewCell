@@ -107,7 +107,6 @@ static NSString *RevealCellReuseIdentifier = @"RevealCellReuseIdentifier";
     {
         cell.cellRevealMode = SWCellRevealModeReversedWithAction;
         [cell setAccessoryType:UITableViewCellAccessoryDisclosureIndicator];
-        
     }
     if ( indexPath.section == SectionImage)
     {
@@ -274,7 +273,6 @@ static NSString *RevealCellReuseIdentifier = @"RevealCellReuseIdentifier";
 
 - (NSArray*)leftButtonItemsInRevealTableViewCell:(SWRevealTableViewCell *)revealTableViewCell
 {
-
     SWCellButtonItem *item1 = [SWCellButtonItem itemWithTitle:@"Select" handler:^(SWCellButtonItem *item, SWRevealTableViewCell *cell)
     {
         NSLog( @"Select Tapped");
@@ -282,7 +280,6 @@ static NSString *RevealCellReuseIdentifier = @"RevealCellReuseIdentifier";
     }];
     
     item1.backgroundColor = [UIColor colorWithRed:0 green:0.5 blue:1 alpha:1];
-    item1.image = [UIImage imageNamed:@"heart.png"];
     item1.tintColor = [UIColor whiteColor];
     item1.width = 50;
     
@@ -293,6 +290,7 @@ static NSString *RevealCellReuseIdentifier = @"RevealCellReuseIdentifier";
     }];
     
     item2.backgroundColor = [UIColor colorWithRed:0 green:0 blue:1 alpha:1];
+    item2.image = [UIImage imageNamed:@"heart.png"];
     item2.width = 50;
     item2.tintColor = [UIColor whiteColor];
     
@@ -357,7 +355,6 @@ static NSString *RevealCellReuseIdentifier = @"RevealCellReuseIdentifier";
         item1.tintColor = [UIColor whiteColor];
         item1.width = 50;
     
-    
         SWCellButtonItem *item2 = [SWCellButtonItem itemWithImage:[UIImage imageNamed:@"heart.png"] handler:^(SWCellButtonItem *item, SWRevealTableViewCell *cell)
         {
             NSLog( @"Heart Tapped");
@@ -376,8 +373,7 @@ static NSString *RevealCellReuseIdentifier = @"RevealCellReuseIdentifier";
     
         item3.backgroundColor = [UIColor colorWithWhite:1 alpha:0.66]; //[UIColor lightGrayColor];
         item3.width = 50;
-    
-    
+
         items = @[item1,item2,item3];
     }
 

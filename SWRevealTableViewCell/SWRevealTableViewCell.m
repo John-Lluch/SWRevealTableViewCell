@@ -84,6 +84,7 @@ static UIImage* _imageWithColor_size(UIColor* color, CGSize size)
 @interface SWCellButtonItem()
 @property(nonatomic,strong) BOOL (^handler)(SWCellButtonItem *, SWRevealTableViewCell*);
 @property(nonatomic,assign) SWUtilityContentView *view;  // Note that we do not retain this
+@property(nonatomic,readonly) BOOL isOpaque;
 @end
 
 @implementation SWCellButtonItem
@@ -136,6 +137,18 @@ static UIImage* _imageWithColor_size(UIColor* color, CGSize size)
         _handler = handler;
     }
     return self;
+}
+
+
+- (void)setBackgroundColor:(UIColor *)color
+{
+    CGFloat c1,c2,c3;
+    CGFloat alpha = 0;
+    BOOL ok = [color getRed:&c1 green:&c2 blue:&c3 alpha:&alpha];
+    ok = ok || [color getHue:&c1 saturation:&c2 brightness:&c3 alpha:&alpha];
+    ok = ok || [color getWhite:&c1 alpha:&alpha];
+    _isOpaque = alpha > 0.98;
+    _backgroundColor = color;
 }
 
 
@@ -597,10 +610,10 @@ static const CGFloat OverDrawWidth = 60;
     CGFloat symmetry = newPosition<SWCellRevealPositionCenter ? 1 : -1;
     
     CGFloat overdrawWidth = symmetry*OverDrawWidth;
-    BOOL isExtendedOverDraw = abs(xLocation) >= abs(maxLocation+overdrawWidth);
+    BOOL isExtendedOverDraw = fabs(xLocation) >= fabs(maxLocation+overdrawWidth);
     
     CGFloat xTarget = xLocation;
-    if ( abs(xLocation) > abs(maxLocation) )
+    if ( fabs(xLocation) > fabs(maxLocation) )
     {
         CGFloat overdraw = xLocation-maxLocation;
 //        CGFloat dampeningWidth = symmetry*DampeningWidth;
@@ -627,7 +640,7 @@ static const CGFloat OverDrawWidth = 60;
         CGFloat lWidth, location;
         if ( mayExtend && isExtendedOverDraw )
         {
-            lWidth = abs(xLocation);
+            lWidth = fabs(xLocation);
             location = lWidth*symmetry;
         }
         else
@@ -636,10 +649,12 @@ static const CGFloat OverDrawWidth = 60;
             location = xTarget*(endLocation/maxLocation);
         }
         
-        CGFloat xReference = symmetry<0 ? size.width+0 : 0-lWidth;
-
         CGFloat scale = Scale();
-        CGFloat x = floor(scale*(xReference+location))/scale; // round to nearest halph point, good for retina and non-retina
+        if ( item.isOpaque ) lWidth += 1/scale;
+        
+        CGFloat xReference = symmetry<0 ? size.width+0 : 0-lWidth;
+    
+        CGFloat x = floor(scale*(xReference+location))/scale; // round to nearest screen pixel, good for retina and non-retina
         CGFloat w = ceil(scale*lWidth)/scale;
         
         CGRect frame = CGRectMake(x, 0, w, size.height);
@@ -742,8 +757,8 @@ static const CGFloat OverDrawWidth = 60;
     UITouch *touch = [touches anyObject];
     CGPoint nowPoint = [touch locationInView:self.view];
     
-    if (abs(nowPoint.x - _beginPoint.x) > kDirectionPanThreshold) _dragging = YES;
-    else if (abs(nowPoint.y - _beginPoint.y) > kDirectionPanThreshold) self.state = UIGestureRecognizerStateFailed;
+    if (fabs(nowPoint.x - _beginPoint.x) > kDirectionPanThreshold) _dragging = YES;
+    else if (fabs(nowPoint.y - _beginPoint.y) > kDirectionPanThreshold) self.state = UIGestureRecognizerStateFailed;
 }
 
 @end
@@ -1280,7 +1295,7 @@ const NSInteger SWCellRevealPositionNone = 0xff;
     CGFloat symmetry = xLocation<0 ? -1 : 1;
     CGFloat overdrawLocation = maxLocation + symmetry*OverDrawWidth;
     
-    if ( abs(xLocation) > abs(overdrawLocation) )
+    if ( fabs(xLocation) > fabs(overdrawLocation) )
     {
         CGFloat secondaryOverdraw = xLocation-overdrawLocation;
 //        CGFloat dampeningWidth = symmetry*DampeningWidth;
@@ -1288,9 +1303,9 @@ const NSInteger SWCellRevealPositionNone = 0xff;
         xLocation = overdrawLocation + secondaryOverdraw*BrakeFactor;
 
         CGFloat scale = Scale();
-        xLocation = round(scale*xLocation)/scale;  // round to nearest halph point, good for retina and non-retina
+        xLocation = round(scale*xLocation)/scale;  // round to nearest screen pixel, good for retina and non-retina
     }
-
+    
     // update frames according to our required offset
     [self _setRevealLocation:xLocation];
     
