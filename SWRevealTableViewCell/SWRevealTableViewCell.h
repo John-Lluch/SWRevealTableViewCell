@@ -32,7 +32,13 @@
 
  RELEASE NOTES
  
- Version 0.3.0 (current Version)
+ Version 0.3.2 (current Version)
+    - Bug fixes
+
+ Version 0.3.1
+    - Bug fixes
+ 
+ Version 0.3.0
     - Major upgrade and refactoring.
     - Support for extended items (similar to delete action of iOS8 mail)
     - Cell button item handler blocks can now specify a return value
