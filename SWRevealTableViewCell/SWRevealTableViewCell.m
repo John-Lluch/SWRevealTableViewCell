@@ -1437,7 +1437,8 @@ const NSInteger SWCellRevealPositionNone = 0xff;
     // symmetric computing of widths
     CGFloat revealWidth = symmetry<0 ? [_utilityContentView rightRevealWidth] : [_utilityContentView leftRevealWidth];
     BOOL bounceBack = symmetry<0 ? _bounceBackOnRightOverdraw : _bounceBackOnLeftOverdraw;
-    BOOL reversed = symmetry<0 ? _leftCascadeReversed : _rightCascadeReversed;
+    BOOL reversed = symmetry<0 ? _rightCascadeReversed : _leftCascadeReversed;
+    BOOL actionable = symmetry<0 ? _performsActionOnRightOverdraw : _performsActionOnLeftOverdraw;
   
     // symmetric replacement of location
     xLocation = xLocation * symmetry;
@@ -1458,7 +1459,7 @@ const NSInteger SWCellRevealPositionNone = 0xff;
             if (xLocation >= revealWidth+OverDrawWidth)
             {
                 if (bounceBack) revealPosition = SWCellRevealPositionCenter;
-                else if (reversed) revealPosition = SWCellRevealPositionRightExtended;
+                else if (reversed && actionable) revealPosition = SWCellRevealPositionRightExtended;
                 else revealPosition = SWCellRevealPositionRight;
             }
         }
@@ -1476,7 +1477,7 @@ const NSInteger SWCellRevealPositionNone = 0xff;
             if (xLocation >= revealWidth+OverDrawWidth)
             {
                 if (bounceBack) revealPosition = SWCellRevealPositionCenter;
-                else if (reversed) revealPosition = SWCellRevealPositionRightExtended;
+                else if (reversed && actionable) revealPosition = SWCellRevealPositionRightExtended;
                 else revealPosition = SWCellRevealPositionRight;
             }
         }

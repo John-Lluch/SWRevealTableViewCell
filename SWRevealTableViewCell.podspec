@@ -1,6 +1,6 @@
 Pod::Spec.new do |s|
   s.name          = "SWRevealTableViewCell"
-  s.version       = "0.3.1"
+  s.version       = "0.3.2"
   s.summary       = "UITableViewCell subclass to easily display left and right buttons based on user pan gestures or developer programmatic actions."
   s.homepage      = "https://github.com/John-Lluch/SWRevealTableViewCell"
   s.license       = "MIT"
