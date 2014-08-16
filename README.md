@@ -1,6 +1,6 @@
 # SWRevealTableViewCell
 
-SWRevealTableViewCell is UITableViewCell subclass to easily display left and right buttons based on user pan gestures or developer programmatic actions. Similar to the mail app and but with enhanced features.
+SWRevealTableViewCell is UITableViewCell subclass to easily display left and right buttons based on user pan gestures or developer programmatic actions. Similar to the iOS8 mail app and but with enhanced features.
 
 ## Features
 
