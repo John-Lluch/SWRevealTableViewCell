@@ -868,30 +868,35 @@ const NSInteger SWCellRevealPositionNone = 0xff;
 
     if ( self.window )
     {
-        // We pick the cell contentView's superview to perform our layout magic.
-        // On iOS7 this used to be a UIScrollView, which was handy, but it is no longer the case on iOS8.
-        // In case the contentOffset methods on the revealScrollView are not available we will perform our layout manualy.
-        // See _setRevealLocation: implementation
-        _revealLayoutView = (id)[self.contentView superview];
-        
-        // Create a view to hold our custom utility views and insert it into the cell hierarchy
-        _utilityContentView = [[SWUtilityContentView alloc] initWithRevealTableViewCell:self frame:self.bounds];
-        [_utilityContentView setAutoresizesSubviews:NO];
-        [_utilityContentView setAutoresizingMask:UIViewAutoresizingFlexibleWidth|UIViewAutoresizingFlexibleHeight];
-        [_revealLayoutView insertSubview:_utilityContentView atIndex:0];
-    
-        // Force the initial reveal position to the developer provided value
         SWCellRevealPosition initialPosition = _frontViewPosition;
-        _frontViewPosition = SWCellRevealPositionNone;
-        _leftViewPosition = SWCellRevealPositionNone;
-        _rightViewPosition = SWCellRevealPositionNone;
         
-        // Finally, set the actual position
+        if ( _utilityContentView == nil )
+        {
+            // We pick the cell contentView's superview to perform our layout magic.
+            // On iOS7 this used to be a UIScrollView, which was handy, but it is no longer the case on iOS8.
+            // In case the contentOffset methods on the revealScrollView are not available we will perform our layout manualy.
+            // See _setRevealLocation: implementation
+            _revealLayoutView = (id)[self.contentView superview];
+        
+            // Create a view to hold our custom utility views and insert it into the cell hierarchy
+            _utilityContentView = [[SWUtilityContentView alloc] initWithRevealTableViewCell:self frame:self.bounds];
+            [_utilityContentView setAutoresizesSubviews:NO];
+            [_utilityContentView setAutoresizingMask:UIViewAutoresizingFlexibleWidth|UIViewAutoresizingFlexibleHeight];
+            [_revealLayoutView insertSubview:_utilityContentView atIndex:0];
+
+            // Force the initial reveal position to the developer provided value
+            _frontViewPosition = SWCellRevealPositionNone;
+            _leftViewPosition = SWCellRevealPositionNone;
+            _rightViewPosition = SWCellRevealPositionNone;
+        }
+        
+        // Finally, set the current position if needed
         [self _setRevealPosition:initialPosition withDuration:0.0];
     }
     else
     {
-        [_utilityContentView resetButtonItems];  // this will prevent retain cycles around item action blocks
+        // this will prevent retain cycles around item action blocks
+        [_utilityContentView resetButtonItems];
     }
 }
 
@@ -1231,10 +1236,10 @@ const NSInteger SWCellRevealPositionNone = 0xff;
         newPosition = SWCellRevealPositionCenter;
 
     BOOL appear = (_leftViewPosition <= SWCellRevealPositionCenter || _leftViewPosition == SWCellRevealPositionNone) && newPosition > SWCellRevealPositionCenter;
-    BOOL disappear = (newPosition <= SWCellRevealPositionCenter || newPosition == SWCellRevealPositionNone) && _leftViewPosition > SWCellRevealPositionCenter;
+    BOOL disappear = newPosition <= SWCellRevealPositionCenter && (_leftViewPosition > SWCellRevealPositionCenter && _leftViewPosition != SWCellRevealPositionNone);
     
     if ( appear )
-        [_revealLayoutView insertSubview:_utilityContentView atIndex:0];
+        [_revealLayoutView sendSubviewToBack:_utilityContentView];
     
     _leftViewPosition = newPosition;
     
@@ -1251,11 +1256,11 @@ const NSInteger SWCellRevealPositionNone = 0xff;
     if ( !_allowsRevealInEditMode && self.editing )
         newPosition = SWCellRevealPositionCenter;
 
-    BOOL appear = _rightViewPosition >= SWCellRevealPositionCenter && newPosition < SWCellRevealPositionCenter ;
-    BOOL disappear = newPosition >= SWCellRevealPositionCenter && _rightViewPosition < SWCellRevealPositionCenter;
+    BOOL appear = (_rightViewPosition >= SWCellRevealPositionCenter || _rightViewPosition == SWCellRevealPositionNone) && newPosition < SWCellRevealPositionCenter ;
+    BOOL disappear = newPosition >= SWCellRevealPositionCenter && (_rightViewPosition < SWCellRevealPositionCenter && _rightViewPosition != SWCellRevealPositionNone);
     
     if ( appear )
-        [_revealLayoutView insertSubview:_utilityContentView atIndex:0];
+        [_revealLayoutView sendSubviewToBack:_utilityContentView];
     
     _rightViewPosition = newPosition;
     

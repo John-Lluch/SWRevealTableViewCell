@@ -324,10 +324,18 @@ static NSString *RevealCellReuseIdentifier = @"RevealCellReuseIdentifier";
             [self presentRenameActionSheetForItem:item];
             return NO;
         }];
-
-        item2.backgroundColor = [UIColor darkGrayColor];
-        item2.tintColor = [UIColor whiteColor];
-        item2.width = 50;
+        
+        SWCellButtonItem *item22 = [SWCellButtonItem itemWithTitle:@"Push controller" handler:^(SWCellButtonItem *item, SWRevealTableViewCell *cell)
+        {
+            _revealingCellIndexPath = [self.tableView indexPathForCell:cell];
+            TableViewController *tableViewController = [[TableViewController alloc] initWithStyle:UITableViewStylePlain];
+            [self.navigationController pushViewController:tableViewController animated:YES];
+            return NO;
+        }];
+        
+        item22.backgroundColor = [UIColor darkGrayColor];
+        item22.tintColor = [UIColor whiteColor];
+        item22.width = 50;
     
         SWCellButtonItem *item3 = [SWCellButtonItem itemWithTitle:@"More" handler:^(SWCellButtonItem *item, SWRevealTableViewCell *cell)
         {
@@ -339,7 +347,7 @@ static NSString *RevealCellReuseIdentifier = @"RevealCellReuseIdentifier";
         item3.backgroundColor = [UIColor lightGrayColor];
         item3.width = 50;
         
-        items = @[item1,item2,item3];
+        items = @[item1,item2,item3, item22];
     }
     
     else if ( section == SectionImage )
