@@ -20,6 +20,13 @@ SWRevealTableViewCell is UITableViewCell subclass to easily display left and rig
 * Comprehensive set of delegate methods for getting full state of the controller and implementing your own code hooks for customizing behavior.
 * Lightweight, clean, easy-to-read, self-documenting code that you will enjoy using in your projects.
 
+## Gifs
+
+![Image1](https://cloud.githubusercontent.com/assets/1282248/3996270/d1deef68-2933-11e4-8b85-4f027eef8284.gif)
+![Image2](https://cloud.githubusercontent.com/assets/1282248/3996276/e64e2efa-2933-11e4-8d4f-1072d6de9b6f.gif)
+![Image3](https://cloud.githubusercontent.com/assets/1282248/3996280/f35b0546-2933-11e4-933f-f75471bcd58c.gif)
+
+
 ## YouTube Videos
 
 [http://youtu.be/jlaWQsWinoU (new)](http://youtu.be/jlaWQsWinoU)
