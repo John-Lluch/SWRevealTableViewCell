@@ -862,11 +862,11 @@ const NSInteger SWCellRevealPositionNone = 0xff;
 
 #pragma mark - Life cycle
 
-- (void)didMoveToWindow
+- (void)didMoveToSuperview
 {
-    [super didMoveToWindow];
+    [super didMoveToSuperview];
 
-    if ( self.window )
+    if ( [self superview] )
     {
         SWCellRevealPosition initialPosition = _frontViewPosition;
         
@@ -929,7 +929,7 @@ const NSInteger SWCellRevealPositionNone = 0xff;
 
 - (void)setRevealPosition:(SWCellRevealPosition)revealPosition animated:(BOOL)animated
 {
-    if ( ![self window] )
+    if ( ![self superview] )
     {
         _frontViewPosition = revealPosition;
         _leftViewPosition = revealPosition;

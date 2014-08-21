@@ -324,6 +324,10 @@ static NSString *RevealCellReuseIdentifier = @"RevealCellReuseIdentifier";
             [self presentRenameActionSheetForItem:item];
             return NO;
         }];
+        
+        item2.backgroundColor = [UIColor grayColor];
+        item2.tintColor = [UIColor whiteColor];
+        item2.width = 50;
     
         SWCellButtonItem *item3 = [SWCellButtonItem itemWithTitle:@"More" handler:^(SWCellButtonItem *item, SWRevealTableViewCell *cell)
         {
