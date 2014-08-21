@@ -23,15 +23,15 @@ SWRevealTableViewCell is UITableViewCell subclass to easily display left and rig
 
 ## Basic Functionality
 
-Left and right 'cellButtonItems' with optional 'performsActionOnOverdraw' feature, imitating iOS8 mail app
+Left and right 'cellButtonItems' with optional 'performsActionOnOverdraw' feature, imitating iOS8 mail app feedback animation for deleting cells
 
 ![Image1](https://cloud.githubusercontent.com/assets/1282248/3996276/e64e2efa-2933-11e4-8d4f-1072d6de9b6f.gif)
 
-Items can be stacked 'fist on top' (default) or 'last on top' (like iOS8 mail app)
+Items can be stacked 'first on top' (default) or 'last on top' (like iOS8 mail app). The following gif shows button items stacked as if they were behind the cell.  
 
 ![Image2](https://cloud.githubusercontent.com/assets/1282248/3996270/d1deef68-2933-11e4-8b85-4f027eef8284.gif)
 
-Works with transparency and visual effects as well. No issues with tableViewCell accessory items
+Works well with transparency and visual effects on cells and button items. No issues either with tableViewCell accessory views. 
 
 ![Image3](https://cloud.githubusercontent.com/assets/1282248/3996280/f35b0546-2933-11e4-933f-f75471bcd58c.gif)
 
