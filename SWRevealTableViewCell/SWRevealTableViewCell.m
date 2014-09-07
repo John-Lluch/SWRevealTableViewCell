@@ -172,7 +172,7 @@ static UIImage* _imageWithColor_size(UIColor* color, CGSize size)
 @end
 
 
-#pragma mark - SWUTilityButton
+#pragma mark - SWUtilityButton
 
 @interface SWUtilityButton : UIButton
 @property (nonatomic) SWCellButtonItem *item;
